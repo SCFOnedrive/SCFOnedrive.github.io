@@ -21,8 +21,11 @@
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
 			} else {
-				document.getElementById('test1').innerHTML='调用参数为空！';
-				alert('调用参数为空！');
+				var str='有误！';
+				if (!url) str+='url参数为空！';
+				if (!code) str+='微软code为空！';
+				document.getElementById('test1').innerHTML=str;
+				alert(str);
 			}
 		</script>
 	</body>
