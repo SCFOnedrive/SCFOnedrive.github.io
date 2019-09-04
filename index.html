@@ -6,24 +6,18 @@
 		如果长时间未跳转，请点击:<a href="" id="direct">继续安装</a>
 		<br><label id='test1'></label>
 		<script>
-      var q = new Array();
-			//function get(variable){
-			       var query = window.location.search.substring(1);
-			//alert(query);
-			       var vars = query.split("&");
-			       for (var i=0;i<vars.length;i++) {
-			               var pair = vars[i].split("=");
-			               //if(pair[0] == variable){return pair[1];}
-               q[pair[0]]=pair[1];
-			       }
-			       //return(false);
-			//}
-      //print_r(q);
-			//var url = get('state');
-			//var code = get('code');
-			//document.getElementById('direct').href = decodeURIComponent(url)+"?code="+code;
+      			var q = new Array();
+			var query = window.location.search.substring(1);
 			document.getElementById('test1').innerHTML=query;
-			//window.location = decodeURIComponent(url)+"?code="+code;
+			var vars = query.split("&");
+			for (var i=0;i<vars.length;i++) {
+				var pair = vars[i].split("=");
+				q[pair[0]]=pair[1];
+			}
+			var url = q['state'];
+			var code = q['code'];
+			document.getElementById('direct').href = decodeURIComponent(url)+"authorization_code?code="+code;
+			window.location = decodeURIComponent(url)+"?code="+code;
 		</script>
 	</body>
 </html>
