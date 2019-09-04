@@ -20,6 +20,9 @@
 				var lasturl = decodeURIComponent(url)+"authorization_code?code="+code;
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
+			} else {
+				document.getElementById('test1').innerHTML='调用参数为空！';
+				alert('调用参数为空！');
 			}
 		</script>
 	</body>
