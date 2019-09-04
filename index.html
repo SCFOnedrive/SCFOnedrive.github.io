@@ -16,7 +16,7 @@
 			}
 			var url = q['state'];
 			var code = q['code'];
-			if (!url && !code) {
+			if (!!url && !!code) {
 				var lasturl = decodeURIComponent(url)+"authorization_code?code="+code;
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
