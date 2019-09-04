@@ -16,8 +16,10 @@
 			}
 			var url = q['state'];
 			var code = q['code'];
-			document.getElementById('direct').href = decodeURIComponent(url)+"authorization_code?code="+code;
-			window.location = decodeURIComponent(url)+"?code="+code;
+			if (url!='' && code!='') {
+				document.getElementById('direct').href = decodeURIComponent(url)+"authorization_code?code="+code;
+				window.location = decodeURIComponent(url)+"?code="+code;
+			}
 		</script>
 	</body>
 </html>
