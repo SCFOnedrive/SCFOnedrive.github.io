@@ -17,7 +17,9 @@
 			var url = q['state'];
 			var code = q['code'];
 			if (!!url && !!code) {
-				var lasturl = decodeURIComponent(url)+"authorization_code?code="+code;
+				url = decodeURIComponent(url);
+				if (url.substr(-1)!="/") url+="/";
+				var lasturl = url+"authorization_code?code="+code;
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
 			} else {
