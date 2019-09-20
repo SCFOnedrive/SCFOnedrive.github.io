@@ -26,7 +26,7 @@
 				var str='有误！';
 				if (!url) str+='url参数为空！';
 				if (!code) str+='微软code为空！';
-				document.getElementById('test1').innerHTML=str+'<br>'+query;
+				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query);
 				alert(str);
 			}
 		</script>
