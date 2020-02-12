@@ -1,10 +1,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 	<head>
-		<title>Oneindex_SCF 安装桥接页</title>
+		<title>OneManager jump page</title>
 	</head>
 	<body>
-		如果长时间未跳转，请点击:<a id="direct">继续安装</a>
-		<br><label id='test1'></label>
+		<a id="direct">No link here!</a><br>
+		If not auto jump, click the link to jump.<br>
+		如果长时间未跳转，请点击上方链接继续安装。<br>
+		<label id='test1'></label>
 		<script>
       			var q = new Array();
 			var query = window.location.search.substring(1);
@@ -20,12 +22,13 @@
 				url = decodeURIComponent(url);
 				if (url.substr(-1)!="/") url+="/";
 				var lasturl = url+"?authorization_code&code="+code;
+				document.getElementById('direct').innerText = lasturl;
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
 			} else {
-				var str='有误！';
-				if (!url) str+='url参数为空！';
-				if (!code) str+='微软code为空！';
+				var str='Error! 有误！';
+				if (!url) str+='No url! url参数为空！';
+				if (!code) str+='No code from MS! 微软code为空！';
 				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query);
 				alert(str);
 			}
