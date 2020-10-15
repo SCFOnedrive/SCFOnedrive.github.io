@@ -1,0 +1,38 @@
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+	<head>
+		<title>OneManager jump page</title>
+	</head>
+	<body>
+		<a id="direct">No link here!</a><br>
+		If not auto jump, click the link to jump.<br>
+		如果长时间未跳转，请点击上方链接继续安装。<br>
+		<label id='test1'></label>
+		<script>
+      			var q = new Array();
+			var query = window.location.search.substring(1);
+			//document.getElementById('test1').innerHTML=query;
+			var vars = query.split("&");
+			for (var i=0;i<vars.length;i++) {
+				var pair = vars[i].split("=");
+				q[pair[0]]=pair[1];
+			}
+			var url = q['state'];
+			var code = q['code'];
+			if (!!url && !!code) {
+				url = decodeURIComponent(url);
+				if (url.substr(-1)!="/") url+="/";
+				var lasturl = url+"?AddDisk&Driver=CT&install2&code="+code;
+				document.getElementById('direct').innerText = lasturl;
+				document.getElementById('direct').href = lasturl;
+				window.location = lasturl;
+			} else {
+				var str='有误！';
+				if (!url) str+='url参数为空！';
+				if (!code) str+='天翼code为空！';
+				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query);
+				alert(str);
+			}
+		</script>
+	</body>
+</html>
