@@ -20,8 +20,12 @@
 			var code = q['code'];
 			if (!!url && !!code) {
 				url = decodeURIComponent(url);
-				if (url.substr(-1)!="/") url+="/";
-				var lasturl = url+"?AddDisk&Driver=MS365&install2&authorization_code&code="+code;
+				if (url.indexOf("AddDisk=")) {
+					var lasturl = url+"&code="+code;
+				} else {
+					if (url.substr(-1)!="/") url+="/";
+					var lasturl = url+"?AddDisk&Driver=MS365&install2&authorization_code&code="+code;
+				}
 				document.getElementById('direct').innerText = lasturl;
 				document.getElementById('direct').href = lasturl;
 				window.location = lasturl;
