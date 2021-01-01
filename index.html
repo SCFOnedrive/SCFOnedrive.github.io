@@ -20,7 +20,7 @@
 			var code = q['code'];
 			if (!!url && !!code) {
 				url = decodeURIComponent(url);
-				if (url.indexOf("AddDisk=")) {
+				if (url.indexOf("AddDisk=")>1) {
 					var lasturl = url+"&code="+code;
 				} else {
 					if (url.substr(-1)!="/") url+="/";
