@@ -3,10 +3,11 @@
 		<title>OneManager jump page</title>
 	</head>
 	<body>
-		<a id="direct">No link here!</a><br>
-		If not auto jump, click the link to jump.<br>
-		如果长时间未跳转，请点击上方链接继续安装。<br>
-		<label id='test1'></label>
+		<div id='test1'>
+			<a id="direct">No link here!</a><br>
+			If not auto jump, click the link to jump.<br>
+			如果长时间未跳转，请点击上方链接继续安装。<br>
+		</div>
 		<script>
       			var q = new Array();
 			var query = window.location.search.substring(1);
@@ -33,7 +34,7 @@
 				var str='Error! 有误！';
 				if (!url) str+='No url! url参数为空！';
 				if (!code) str+='No code from MS! 微软code为空！';
-				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query.replace(/\+/g,'%20'));
+				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query.replace(/\+/g,'%20'))+'<a href="'+decodeURIComponent(url)+'">'+decodeURIComponent(url)+'</a>';
 				alert(str);
 			}
 		</script>
