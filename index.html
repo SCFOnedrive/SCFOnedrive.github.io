@@ -33,7 +33,7 @@
 			} else {
 				var str='Error! 有误！';
 				if (!url) str+='No url! url参数为空！';
-				else document.getElementById('test1').innerHTML='<a href="'+decodeURIComponent(url)+'">'+decodeURIComponent(url)+'</a><br>';
+				else document.getElementById('test1').innerHTML='<a href="'+decodeURIComponent(decodeURIComponent(url))+'">'+decodeURIComponent(decodeURIComponent(url))+'</a><br>';
 				if (!code) str+='No code from MS! 微软code为空！';
 				document.getElementById('test1').innerHTML+=str+'<br>'+decodeURIComponent(query.replace(/\+/g,'%20'));
 				alert(str);
