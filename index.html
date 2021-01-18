@@ -33,8 +33,9 @@
 			} else {
 				var str='Error! 有误！';
 				if (!url) str+='No url! url参数为空！';
+				else document.getElementById('test1').innerHTML='<a href="'+decodeURIComponent(url)+'">'+decodeURIComponent(url)+'</a><br>';
 				if (!code) str+='No code from MS! 微软code为空！';
-				document.getElementById('test1').innerHTML=str+'<br>'+decodeURIComponent(query.replace(/\+/g,'%20'))+'<a href="'+decodeURIComponent(url)+'">'+decodeURIComponent(url)+'</a>';
+				document.getElementById('test1').innerHTML+=str+'<br>'+decodeURIComponent(query.replace(/\+/g,'%20'));
 				alert(str);
 			}
 		</script>
