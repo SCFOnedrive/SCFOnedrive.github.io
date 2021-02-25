@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <title>获取文件sha1</title>
+        <script src="https://cdn.bootcdn.net/ajax/libs/js-sha1/0.6.0/sha1.min.js"></script>
+    </head>
+    <body>
+        <select onchange="document.getElementById('upload_file').webkitdirectory=this.value;">
+            <option value="">选择文件</option>
+            <option value="1">选择文件夹</option>
+        </select>
+        <input id="upload_file" type="file" name="upload_filename" multiple="multiple">
+        <input id="upload_submit" onclick="preup();" value="生成sha1" type="button">
+        <button onclick="CopyAllDownloadUrl();">复制结果</button>
+        <hr>
+        <textarea id="result" style="width: 100%;"></textarea>
+        <br>
+        <div id="progress"></div>
+        <script>
+            var result = document.getElementById('result');
+            function preup() {
+                var files=document.getElementById('upload_file').files;
+                //console.log(files);
+                if (files.length<1) return;
+                for (i=0;i<files.length;i++) {
+                    var div=document.createElement('div');
+                    div.setAttribute('id', (files[i].webkitRelativePath||files[i].name));
+                    document.getElementById('progress').appendChild(div);
+                    var div1=document.createElement('div');
+                    div1.setAttribute('style', "display:inline-block");
+                    div.appendChild(div1);
+                    var div2=document.createElement('div');
+                    div2.setAttribute('style', "display:inline-block");
+                    div2.innerText = ', ' + (files[i].webkitRelativePath||files[i].name);
+                    div.appendChild(div2);
+                    readfileb(files[i], div1);
+                }
+            }
+            function readfileb(file, div) {
+                var reader = new FileReader();
+                reader.onprogress = function(e) {
+                    div.innerText = (e.loaded*100/file.size).toFixed(2) + " %";
+                }
+                reader.onload = function(e) {
+                    var filesha1 = sha1(this.result);
+                    var v = (file.webkitRelativePath||file.name) + "," + filesha1 + "," + file.size + "\n";
+                    console.log(v);
+                    result.value += v;
+                    result.style.height = result.scrollHeight + 'px';
+                    div.parentNode.remove();
+                }
+                reader.readAsArrayBuffer(file);
+
+            }
+            function CopyAllDownloadUrl() {
+                result.select();
+                result.setSelectionRange(0, result.value.length);
+                document.execCommand("copy");
+                alert("复制成功，请粘贴");
+            }
+        </script>
+    </body>
+</html>
