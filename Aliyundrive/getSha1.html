@@ -68,7 +68,7 @@
                         let b = new Object();
                         b.name = a[0];
                         b.content_hash = a[1];
-                        b.size = a[2];
+                        b.size = parseInt(a[2]);
                         b.content_type = '';
                         let c = JSON.stringify(b);
                         c = encodeURIComponent(c);
