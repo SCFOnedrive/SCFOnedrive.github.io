@@ -15,9 +15,10 @@
         <hr>
         <textarea id="result" style="width: 100%;"></textarea>
         <br>
+        <button onclick="change2Tamper();">转换给油猴插件用</button><button onclick="change1Tamper();">将油猴插件结果转换</button>
         <div id="progress"></div>
         <script>
-            var result = document.getElementById('result');
+            var result1 = document.getElementById('result');
             function preup() {
                 var files=document.getElementById('upload_file').files;
                 //console.log(files);
@@ -45,18 +46,48 @@
                     var filesha1 = sha1(this.result);
                     var v = (file.webkitRelativePath||file.name) + "," + filesha1 + "," + file.size + "\n";
                     console.log(v);
-                    result.value += v;
-                    result.style.height = result.scrollHeight + 'px';
+                    result1.value += v;
+                    result1.style.height = result1.scrollHeight + 'px';
                     div.parentNode.remove();
                 }
                 reader.readAsArrayBuffer(file);
 
             }
             function CopyAllDownloadUrl() {
-                result.select();
-                result.setSelectionRange(0, result.value.length);
+                result1.select();
+                result1.setSelectionRange(0, result1.value.length);
                 document.execCommand("copy");
                 alert("复制成功，请粘贴");
+            }
+            function change2Tamper() {
+                let e = result1.value.split(/\n/g);
+                result1.value = '';
+                e.forEach(element => {
+                    if (element!='') {
+                        let a = element.split(',');
+                        let b = new Object();
+                        b.name = a[0];
+                        b.content_hash = a[1];
+                        b.size = a[2];
+                        b.content_type = 'video/mp4';
+                        let c = JSON.stringify(b);
+                        c = encodeURIComponent(c);
+                        c = unescape(c);
+                        c = window.btoa(c);
+                        result1.value += c + "\n";
+                    }
+                });
+            }
+            function change1Tamper() {
+                let e = result1.value.split(/\n/g);
+                result1.value = '';
+                e.forEach(element => {
+                    if (element!='') {
+                        let a = decodeURIComponent(escape(window.atob(element)));
+                        let b = JSON.parse(a);
+                        result1.value += b.name + ',' + b.content_hash + ',' + b.size + "\n";
+                    }
+                });
             }
         </script>
     </body>
