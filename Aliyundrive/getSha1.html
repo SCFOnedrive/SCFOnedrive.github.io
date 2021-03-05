@@ -61,6 +61,11 @@
             }
             function change2Tamper() {
                 let e = result1.value.split(/\n/g);
+                let t = e[0].split(',');
+                if (t.length<3) {
+                    alert("有误");
+                    return;
+                }
                 result1.value = '';
                 e.forEach(element => {
                     if (element!='') {
@@ -80,6 +85,12 @@
             }
             function change1Tamper() {
                 let e = result1.value.split(/\n/g);
+                try {
+                    window.atob(e[0]);
+                } catch {
+                    alert("有误");
+                    return;
+                }
                 result1.value = '';
                 e.forEach(element => {
                     if (element!='') {
