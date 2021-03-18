@@ -39,19 +39,32 @@
             }
             function readfileb(file, div) {
                 var reader = new FileReader();
+                var spark = sha1.create();
+                var chunksize=10*1024*1024;
+                var asize = 0;
                 reader.onprogress = function(e) {
-                    div.innerText = (e.loaded*100/file.size).toFixed(2) + " %";
+                    div.innerText = ((asize + e.loaded)*100/file.size).toFixed(2) + " %";
                 }
                 reader.onload = function(e) {
-                    var filesha1 = sha1(this.result);
-                    var v = (file.webkitRelativePath||file.name) + "," + filesha1 + "," + file.size + "\n";
-                    console.log(v);
-                    result1.value += v;
-                    result1.style.height = result1.scrollHeight + 'px';
-                    div.parentNode.remove();
+                    spark.update(this.result);
+                    asize += chunksize;
+                    if (asize < file.size) {
+                        readblob(asize);
+                    } else {
+                        let filesha1 = spark.hex();
+                        var v = (file.webkitRelativePath||file.name) + "," + filesha1 + "," + file.size + "\n";
+                        console.log(v);
+                        result1.value += v;
+                        result1.style.height = result1.scrollHeight + 'px';
+                        div.parentNode.remove();
+                    }
                 }
-                reader.readAsArrayBuffer(file);
-
+                function readblob(start) {
+                    let end = start + chunksize;
+                    let blob = file.slice(start, end);
+                    reader.readAsArrayBuffer(blob);
+                }
+                readblob(asize);
             }
             function CopyAllDownloadUrl() {
                 result1.select();
