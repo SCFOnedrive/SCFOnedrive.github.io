@@ -1,0 +1,147 @@
+<html>
+    <head>
+        <title>Deploy OneManager to Vercel</title>
+    </head>
+    <body>
+        <h4>1. Download zip from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a></h4>
+        <h4>2. Unzip it, select the folder at below:</h4>
+            <input id="upload_file" type="file" name="upload_filename" multiple="multiple" webkitdirectory>
+        <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
+            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" size=""></label>
+        <h4>4. Input the name for your project: </h4>
+            <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"></label>
+            <br>
+            you can overlay an existed project
+        <h4>5. Click the deploy button</h4>
+            <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
+        <div id="showerror"></div>
+        <script type="text/javascript">
+            function preup() {
+                var files = document.getElementById('upload_file').files;
+                var VercelToken = document.getElementById("VercelToken").value;
+                var projectname = document.getElementById("projectname").value;
+                var haveIndex = 0;
+                var dirpath = "";
+                for (file of files) {
+                    //console.log(file.webkitRelativePath);
+                    if (file.name=="index.php") {
+                        haveIndex++;
+                        dirpath = file.webkitRelativePath.substr(0, file.webkitRelativePath.length-file.name.length);
+                    }
+                }
+                if (haveIndex!==1) {
+                    alert("No index.php or more then 1");
+                    return;
+                }
+                //console.log(dirpath);
+                if (VercelToken=="") {
+                    document.getElementById("VercelToken").parentNode.style.color = "red";
+                    alert("Input VercelToken");
+                    return;
+                }
+                if (projectname=="") {
+                    document.getElementById("projectname").parentNode.style.color = "red";
+                    alert("Input projectname");
+                    return;
+                }
+
+                // get files content
+                var i = 0;
+                var filedata = new Array();
+                for (file of files) {
+                    if (file.webkitRelativePath.substr(0, dirpath.length)==dirpath) {
+                        let tmpfilename = "api/" + file.webkitRelativePath.substr(dirpath.length);
+                        let reader = new FileReader();
+                        reader.onload = function(e) {
+                            var tmp = {
+                                "file": tmpfilename,
+                                "data": this.result
+                            }
+                            filedata.push(tmp);
+                            i++;
+                        }
+                        reader.readAsText(file);
+                    } else {
+                        i++;
+                    }
+                }
+                var uploadList = setInterval(function(){
+                    if (i<files.length) {
+                        console.log(i);
+                    } else {
+                        clearInterval(uploadList);
+                        //console.log(filedata);
+                        //console.log("Over");
+                        deploy(projectname, filedata, VercelToken);
+                    }
+                }, 1000);
+            }
+            function deploy(projectname, filedata, VercelToken) {
+                var xhr = new XMLHttpRequest();
+                var url = "https://api.vercel.com/v12/now/deployments";
+                xhr.open("POST", url);
+                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                var data = {
+                    "name": projectname,
+                    //"project": appId,
+                    "target": "production",
+                    "functions": {
+                        "api/index.php": {
+                            "runtime": "vercel-php@0.4.0"
+                        }
+                    },
+                    "routes": [
+                        {
+                            "src": "/(.*)",
+                            "dest": "/api/index.php"
+                        }
+                    ],
+                    "projectSettings": {
+                        "framework": null
+                    },
+                    "files": filedata
+                }
+                xhr.onload = function(e) {
+                    //console.log(xhr.status);
+                    //console.log(xhr.responseText);
+                    var res = JSON.parse(xhr.responseText);
+                    //console.log(res);
+                    if (xhr.status==200) {
+                        getStatus(res.id, res.alias[0], VercelToken);
+                    } else {
+                        document.getElementById("showerror").innerHTML = xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
+                    }
+                }
+                xhr.send(JSON.stringify(data));
+            }
+            var x = "";
+            var min = 0;
+            function getStatus(id, domain, VercelToken) {
+                //console.log(id + " " + domain + " " + VercelToken);
+                x += ".";
+                min++;
+                var xhr = new XMLHttpRequest();
+                var url = "https://api.vercel.com/v11/now/deployments/" + id;
+                xhr.open("GET", url);
+                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                var errordiv = document.getElementById("showerror");
+                xhr.onload = function(e) {
+                    if (xhr.status==200) {
+                        var deployStat = JSON.parse(xhr.responseText).readyState;
+                        if (deployStat=="READY") {
+                            errordiv.innerHTML = "Deploy done.<br>Click <a href=\"http://" + domain + "\">" + domain + "</a> to Install.";
+                        } else {
+                            errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
+                            if (deployStat!=="ERROR") setTimeout(function() { getStatus(id, domain, VercelToken) }, 1000);
+                        }
+                    } else {
+                        console.log(xhr.status);
+                        console.log(xhr.responseText);
+                    }
+                }
+                xhr.send(null);
+            }
+        </script>
+    </body>
+</html>
