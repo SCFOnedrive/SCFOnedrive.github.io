@@ -72,6 +72,7 @@
                         clearInterval(uploadList);
                         //console.log(filedata);
                         //console.log("Over");
+                        i = 0;
                         deploy(projectname, filedata, VercelToken);
                     }
                 }, 1000);
@@ -130,7 +131,7 @@
                     if (xhr.status==200) {
                         var deployStat = JSON.parse(xhr.responseText).readyState;
                         if (deployStat=="READY") {
-                            errordiv.innerHTML = "Deploy done.<br>Click <a href=\"http://" + domain + "\">" + domain + "</a> to Install.";
+                            errordiv.innerHTML = "Deploy done.<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
                         } else {
                             errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
                             if (deployStat!=="ERROR") setTimeout(function() { getStatus(id, domain, VercelToken) }, 1000);
