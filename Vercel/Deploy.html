@@ -131,6 +131,8 @@
                     if (xhr.status==200) {
                         var deployStat = JSON.parse(xhr.responseText).readyState;
                         if (deployStat=="READY") {
+                            x = "";
+                            min = 0;
                             errordiv.innerHTML = "Deploy done.<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
                         } else {
                             errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
