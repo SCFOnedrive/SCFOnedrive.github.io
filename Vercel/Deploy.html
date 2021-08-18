@@ -46,6 +46,7 @@
                 }
 
                 // get files content
+                document.getElementById("showerror").innerHTML = "Reading files";
                 var i = 0;
                 var filedata = new Array();
                 for (file of files) {
@@ -78,6 +79,7 @@
                 }, 1000);
             }
             function deploy(projectname, filedata, VercelToken) {
+                document.getElementById("showerror").innerHTML = "Deploy post";
                 var xhr = new XMLHttpRequest();
                 var url = "https://api.vercel.com/v12/now/deployments";
                 xhr.open("POST", url);
