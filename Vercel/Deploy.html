@@ -1,3 +1,4 @@
+
 <html>
     <head>
         <title>Deploy OneManager to Vercel</title>
@@ -7,7 +8,7 @@
         <h4>2. Unzip it, select the folder at below:</h4>
             <input id="upload_file" type="file" name="upload_filename" multiple="multiple" webkitdirectory>
         <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
-            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" size=""></label>
+            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""></label>
         <h4>4. Input the name for your project: </h4>
             <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"></label>
             <br>
@@ -49,12 +50,18 @@
                 document.getElementById("showerror").innerHTML = "Reading files";
                 var i = 0;
                 var filedata = new Array();
+                let tmp = {
+                    "file": "vercel.json",
+                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.4.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                }
+                filedata.push(tmp);
                 for (file of files) {
+                    //console.log(file.webkitRelativePath);
                     if (file.webkitRelativePath.substr(0, dirpath.length)==dirpath) {
                         let tmpfilename = "api/" + file.webkitRelativePath.substr(dirpath.length);
                         let reader = new FileReader();
                         reader.onload = function(e) {
-                            var tmp = {
+                            let tmp = {
                                 "file": tmpfilename,
                                 "data": this.result
                             }
@@ -68,7 +75,7 @@
                 }
                 var uploadList = setInterval(function(){
                     if (i<files.length) {
-                        console.log(i);
+                        console.log(i + ", " + files.length);
                     } else {
                         clearInterval(uploadList);
                         //console.log(filedata);
