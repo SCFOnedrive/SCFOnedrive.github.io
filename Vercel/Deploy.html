@@ -2,9 +2,12 @@
 <html lang="en-us">
     <head>
         <title>Deploy OneManager to Vercel</title>
+        <meta name=viewport content="width=device-width,initial-scale=1">
         <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
     </head>
     <body>
+        <h1>Deploy to Vercel with zip file</h1>
+        (Click <a href="DeployFolder.html">here</a> to Deploy with folder.)
         <h4>1. Download zip file from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a></h4>
         <h4>2. Choose the zip file:</h4>
             <input id="upload_file" type="file" name="upload_filename">
@@ -13,8 +16,9 @@
         <h4>4. Input a name for your project: </h4>
             <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"></label>
             <br>
-            Don't warry, you can overlay an existed project.
-        <h4>5. Click the deploy button</h4>
+            You can overlay an existed project.<br>
+            (You will lost your config, please export the config before overlay.)
+        <h4>5. Click the "Deploy" button</h4>
             <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
         <div id="showerror"></div>
         <script type="text/javascript">
@@ -40,6 +44,11 @@
                 var p = 0;
                 var new_zip = new JSZip();
                 new_zip.loadAsync(zipfile)
+                .catch(function(e){
+                    //console.log(e);
+                    document.getElementById("showerror").innerHTML += "<br>" + e;
+                    clearInterval(findPath);
+                })
                 .then(function(zip) {
                     let files = zip.files;
                     //console.log(files);
@@ -56,7 +65,7 @@
 
                 var findPath = setInterval(function(){
                     if (p===0) {
-                        console.log(i);
+                        console.log(num);
                     } else {
                         clearInterval(findPath);
                         //console.log(num);
