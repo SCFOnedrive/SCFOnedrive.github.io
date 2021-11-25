@@ -70,11 +70,12 @@
                         clearInterval(findPath);
                         //console.log(num);
                         if (haveIndex!==1) {
-                            alert("No index.php or more then 1");
+                            document.getElementById("showerror").innerHTML += "<br>Error: not find index.php or more then one.";
+                            //alert("No index.php or more then 1");
                             return;
                         }
                         console.log("find path End.");
-                        document.getElementById("showerror").innerHTML += "<br>Path is \"" + dirpath + "\"";
+                        document.getElementById("showerror").innerHTML += " ---- done.<br>Path is \"" + dirpath + "\" .";
                         getFileContent(dirpath, num);
                     }
                 }, 1000);
@@ -126,6 +127,7 @@
                         clearInterval(uploadList);
                         //console.log(filedata);
                         console.log("read file End");
+                        document.getElementById("showerror").innerHTML += " ---- done.";
                         var VercelToken = document.getElementById("VercelToken").value;
                         var projectname = document.getElementById("projectname").value;
                         deploy(projectname, filedata, VercelToken);
@@ -166,7 +168,7 @@
                     var res = JSON.parse(xhr.responseText);
                     //console.log(res);
                     if (xhr.status==200) {
-                        document.getElementById("showerror").innerHTML += "<br>Deploy POST success!";
+                        document.getElementById("showerror").innerHTML += " ---- done.<br>Deploy POST success!";
                         getStatus(res.id, res.alias[0], VercelToken);
                     } else {
                         document.getElementById("showerror").innerHTML += "<br>" + xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
@@ -200,6 +202,7 @@
                     } else {
                         console.log(xhr.status);
                         console.log(xhr.responseText);
+                        document.getElementById("showerror").innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
                     }
                 }
                 xhr.send(null);
