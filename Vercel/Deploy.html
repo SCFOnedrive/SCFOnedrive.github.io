@@ -12,9 +12,9 @@
         <h4>2. Choose the zip file:</h4>
             <input id="upload_file" type="file" name="upload_filename">
         <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
-            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""></label>
+            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value="" oninput="this.parentNode.style.color = '';"></label>
         <h4>4. Input a name for your project: </h4>
-            <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"></label>
+            <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager" oninput="this.parentNode.style.color = '';"></label>
             <br>
             You can overlay an existed project.<br>
             (You will lost your config, please export the config before overlay.)
@@ -24,126 +24,136 @@
         <script type="text/javascript">
             var errordiv = document.getElementById("showerror");
             function preup() {
+                errordiv.innerHTML = "";
+                var zipfile = document.getElementById('upload_file').files[0];
                 var VercelToken = document.getElementById("VercelToken").value;
                 var projectname = document.getElementById("projectname").value;
+                if (zipfile===undefined) {
+                    alert("Choose a zip file");
+                    return;
+                }
                 if (VercelToken=="") {
                     document.getElementById("VercelToken").parentNode.style.color = "red";
-                    alert("Input VercelToken");
+                    //alert("Input VercelToken");
+                    errordiv.innerHTML += "<br>Input VercelToken";
                     return;
                 }
                 if (projectname=="") {
                     document.getElementById("projectname").parentNode.style.color = "red";
-                    alert("Input projectname");
+                    //alert("Input projectname");
+                    errordiv.innerHTML += "<br>Input projectname";
                     return;
                 }
 
-                errordiv.innerHTML = "Finding path of files in zip.";
-                var zipfile = document.getElementById('upload_file').files[0];
-                var haveIndex = 0;
-                var dirpath = "";
-                var num = 0;
-                var p = 0;
                 var new_zip = new JSZip();
-                new_zip.loadAsync(zipfile)
-                .catch(function(e){
-                    //console.log(e);
-                    errordiv.innerHTML += "<br>" + e;
-                    clearInterval(findPath);
-                })
-                .then(function(zip) {
-                    let files = zip.files;
-                    //console.log(files);
-                    for (filename in files) {
-                        //console.log(filename);
-                        if (filename.substr(-9)==="index.php") {
-                            haveIndex++;
-                            dirpath = filename.substr(0, filename.length-9);
-                        }
-                        if (zip.file(filename)!==null) num++;
-                    }
-                    p = 1;
-                });
-
-                var findPath = setInterval(function(){
-                    if (p===0) {
-                        console.log(num);
-                    } else {
-                        clearInterval(findPath);
-                        //console.log(num);
-                        if (haveIndex!==1) {
-                            errordiv.innerHTML += "<br>Error: not find index.php or more then one.";
-                            //alert("No index.php or more then 1");
-                            return;
-                        }
-                        console.log("find path End.");
-                        errordiv.innerHTML += " ---- done.<br>Path is \"" + dirpath + "\" .";
+                errordiv.innerHTML = "Checking zip.";
+                new_zip.loadAsync(zipfile).then(function(zip) {
+                    errordiv.innerHTML += " ---- done.";
+                    var dirpath = findPath(zip);
+                    if (dirpath!==false) {
                         checkDeploys(projectname, VercelToken).then(a => {
-                            console.log("no building " + a);
-                            getFileContent(dirpath, num);
-                        }, a => {
-                            console.log("is building " + a);
+                            console.log("no other building.");
+                            getFileContent(zip, dirpath).then(filedata => {
+                                //console.log(filedata);
+                                deploy(projectname, filedata, VercelToken);
+                            });
+                        }, e => {
+                            console.log(e);
+                            console.log(e.url +" is building.");
                         });
                     }
-                }, 1000);
+                }, e => {
+                    errordiv.innerHTML += "<br>" + e;
+                });
 
                 return;
             }
 
-            function checkDeploys(name, VercelToken) {
-                errordiv.innerHTML += "<br>Check if deploying.";
-                return new Promise(function(resolve, reject){
-                var r = 0;
-                var xhr = new XMLHttpRequest();
-                var url = "https://api.vercel.com/v6/deployments/?app=" + name;
-                xhr.open("GET", url);
-                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                
-                xhr.onload = function(e) {
-                    //console.log(JSON.parse(xhr.responseText));
-                    if (xhr.status==200) {
-                        var deploys = JSON.parse(xhr.responseText).deployments;
-                        deploys.forEach(element => {
-                            //console.log(element.state);
-                            if (element.state!=="READY") r++;
-                        });
-                        if (r===0) {
-                            errordiv.innerHTML += " ---- done.";
-                            resolve();
-                        } else {
-                            errordiv.innerHTML += "<br>There is a deployment building, please wait.";
-                            reject();
-                            // if continue deploy, please wait the last one done.
-                            //return setTimeout(function() { resolve(checkDeploys(name, VercelToken)) }, 1000);
-                        }
-                    } else {
-                        console.log(xhr.status);
-                        console.log(xhr.responseText);
-                        errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
-                        reject();
+            function findPath(zip) {
+                errordiv.innerHTML += "<br>Finding path of files in zip.";
+                var haveIndex = 0;
+                var dirpath = "";
+                console.log("find path: Start.");
+                for (filename in zip.files) {
+                    //console.log(filename);
+                    if (filename.substr(filename.lastIndexOf("/")+1)==="index.php") {
+                        console.log(filename);
+                        haveIndex++;
+                        dirpath = filename.substr(0, filename.length-9);
                     }
                 }
-                xhr.send(null);
+                if (haveIndex===0) {
+                    console.log("find path Error.");
+                    errordiv.innerHTML += "<br>Error: not find index.php.";
+                    return false;
+                } else if (haveIndex>1) {
+                    console.log("find path Error.");
+                    errordiv.innerHTML += "<br>Error: index.php more then one.";
+                    return false;
+                } else {
+                    console.log("find path: End.");
+                    errordiv.innerHTML += " ---- done.";
+                    console.log("Path is \"" + dirpath + "\" .");
+                    return dirpath;
+                }
+            }
+
+            function checkDeploys(name, VercelToken) {
+                errordiv.innerHTML += "<br>Check if another deploying.";
+                return new Promise(function(resolve, reject){
+                    var r = 0;
+                    var xhr = new XMLHttpRequest();
+                    var url = "https://api.vercel.com/v6/deployments/?app=" + name;
+                    xhr.open("GET", url);
+                    xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                    xhr.onprogress = function(e) {
+                        errordiv.innerHTML += ".";
+                    }
+                    xhr.onload = function(e) {
+                        //console.log(JSON.parse(xhr.responseText));
+                        if (xhr.status==200) {
+                            var deploys = JSON.parse(xhr.responseText).deployments;
+                            deploys.forEach(element => {
+                                //console.log(element);
+                                if (element.state!=="READY") {
+                                    r++;
+                                    reject(element);
+                                }
+                            });
+                            if (r===0) {
+                                errordiv.innerHTML += " ---- done.";
+                                resolve(r);
+                            } else {
+                                errordiv.innerHTML += "<br>There is a deployment building, please wait.";
+                                reject();
+                                // if continue deploy, please wait the last one done.
+                                //return setTimeout(function() { resolve(checkDeploys(name, VercelToken)) }, 1000);
+                            }
+                        } else {
+                            //console.log(xhr.status);
+                            //console.log(xhr.responseText);
+                            errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
+                            reject();
+                        }
+                    }
+                    xhr.send(null);
                 });
             }
 
-            function getFileContent(dirpath, filesLen) {
+            function getFileContent(zip, dirpath) {
                 // get files content
                 errordiv.innerHTML += "<br>Reading files.";
-                var zipfile = document.getElementById('upload_file').files[0];
-                var i = 0;
-                var filedata = new Array();
-                let tmp = {
-                    "file": "vercel.json",
-                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.4.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
-                }
-                filedata.push(tmp);
-                var p = 0;
-                var new_zip = new JSZip();
-                new_zip.loadAsync(zipfile)
-                .then(function(zip) {
-                    let files = zip.files;
-                    //console.log(files);
-                    for (filename in files) {
+                return new Promise(function(resolve, reject){
+                    console.log("read file: Start.");
+                    var filedata = new Array();
+                    let tmp = {
+                        "file": "vercel.json",
+                        "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.4.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                    }
+                    filedata.push(tmp);
+                    var loadedNum = 0;
+                    var loadingNum = 0;
+                    for (filename in zip.files) {
                         //console.log(filename);
                         if (filename.substr(0, dirpath.length)===dirpath) {
                             let tmpfilename = "api/" + filename.substr(dirpath.length);
@@ -156,26 +166,26 @@
                                         "data": e
                                     }
                                     filedata.push(tmp);
-                                    p++;
+                                    loadedNum++;
                                 });
+                                loadingNum++;
                             }
                         }
                     }
-                });
 
-                var uploadList = setInterval(function(){
-                    if (p<filesLen) {
-                        console.log(p);
-                    } else {
-                        clearInterval(uploadList);
-                        //console.log(filedata);
-                        console.log("read file End");
-                        errordiv.innerHTML += " ---- done.";
-                        var VercelToken = document.getElementById("VercelToken").value;
-                        var projectname = document.getElementById("projectname").value;
-                        deploy(projectname, filedata, VercelToken);
-                    }
-                }, 1000);
+                    var uploadList = setInterval(function(){
+                        if (loadingNum==0 || loadedNum<loadingNum) {
+                            console.log(loadedNum + " / " + loadingNum);
+                            errordiv.innerHTML += ".";
+                        } else {
+                            clearInterval(uploadList);
+                            //console.log(filedata);
+                            console.log("read file: End.");
+                            errordiv.innerHTML += " ---- done.";
+                            resolve(filedata);
+                        }
+                    }, 1000);
+                });
             }
 
             function deploy(projectname, filedata, VercelToken) {
@@ -205,13 +215,16 @@
                     },
                     "files": filedata
                 }
+                xhr.onprogress = function(e) {
+                    errordiv.innerHTML += ".";
+                }
                 xhr.onload = function(e) {
                     //console.log(xhr.status);
                     //console.log(xhr.responseText);
                     var res = JSON.parse(xhr.responseText);
                     //console.log(res);
                     if (xhr.status==200) {
-                        errordiv.innerHTML += " ---- done.<br>Deploy POST success!";
+                        errordiv.innerHTML += " ---- done.<br>Getting deploy status";
                         getStatus(res.id, res.alias[0], VercelToken);
                     } else {
                         errordiv.innerHTML += "<br>" + xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
@@ -230,14 +243,15 @@
                 var url = "https://api.vercel.com/v11/deployments/" + id;
                 xhr.open("GET", url);
                 xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                xhr.onprogress = function(e) {
+                    errordiv.innerHTML += ".";
+                }
                 xhr.onload = function(e) {
                     //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status==200) {
                         var deployStat = JSON.parse(xhr.responseText).readyState;
                         if (deployStat=="READY") {
-                            x = "";
-                            min = 0;
-                            errordiv.innerHTML = "Deploy done.<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
+                            errordiv.innerHTML = "Deploy success!<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
                         } else {
                             if (deployStat===undefined) {
                                 errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
@@ -247,8 +261,8 @@
                             }
                         }
                     } else {
-                        console.log(xhr.status);
-                        console.log(xhr.responseText);
+                        //console.log(xhr.status);
+                        //console.log(xhr.responseText);
                         errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
                     }
                 }
