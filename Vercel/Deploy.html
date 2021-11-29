@@ -45,7 +45,14 @@
                     return;
                 }
 
-                var new_zip = new JSZip();
+                try {
+                    var new_zip = new JSZip();
+                } catch (err) {
+                    console.log(err);
+                    errordiv.innerHTML += "<br>" + err.message;
+                    alert("Please check jszip.js is loaded.");
+                    return;
+                }
                 errordiv.innerHTML = "Checking zip.";
                 new_zip.loadAsync(zipfile).then(function(zip) {
                     errordiv.innerHTML += " ---- done.";
@@ -59,10 +66,11 @@
                             });
                         }, e => {
                             console.log(e);
-                            console.log(e.url +" is building.");
+                            console.log(e.url + " is building.");
                         });
                     }
                 }, e => {
+                    //console.log(e);
                     errordiv.innerHTML += "<br>" + e;
                 });
 
@@ -124,7 +132,7 @@
                                 errordiv.innerHTML += " ---- done.";
                                 resolve(r);
                             } else {
-                                errordiv.innerHTML += "<br>There is a deployment building, please wait.";
+                                errordiv.innerHTML += "<br>There is a building deployment, please wait.";
                                 reject();
                                 // if continue deploy, please wait the last one done.
                                 //return setTimeout(function() { resolve(checkDeploys(name, VercelToken)) }, 1000);
@@ -159,16 +167,15 @@
                             let tmpfilename = "api/" + filename.substr(dirpath.length);
                             let file = zip.file(filename);
                             if (file!==null) {
-                                file.async("string").then(function(e){
-                                    //console.log(e);
+                                loadingNum++;
+                                file.async("string").then(function(content){
                                     let tmp = {
                                         "file": tmpfilename,
-                                        "data": e
+                                        "data": content
                                     }
                                     filedata.push(tmp);
                                     loadedNum++;
                                 });
-                                loadingNum++;
                             }
                         }
                     }
@@ -250,15 +257,15 @@
                     //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status==200) {
                         var deployStat = JSON.parse(xhr.responseText).readyState;
-                        if (deployStat=="READY") {
+                        if (deployStat===undefined || deployStat==="ERROR") {
+                            errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
+                        } else if (deployStat=="READY") {
+                            x = "";
+                            min = 0;
                             errordiv.innerHTML = "Deploy success!<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
                         } else {
-                            if (deployStat===undefined) {
-                                errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
-                            } else {
-                                errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
-                                if (deployStat!=="ERROR") setTimeout(function() { getStatus(id, domain, VercelToken) }, 1000);
-                            }
+                            errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
+                            setTimeout(function() { getStatus(id, domain, VercelToken) }, 1000);
                         }
                     } else {
                         //console.log(xhr.status);
