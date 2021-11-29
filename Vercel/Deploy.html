@@ -59,7 +59,7 @@
                     var dirpath = findPath(zip);
                     if (dirpath!==false) {
                         checkDeploys(projectname, VercelToken).then(a => {
-                            console.log("no other building.");
+                            console.log("no other building." + a);
                             getFileContent(zip, dirpath).then(filedata => {
                                 //console.log(filedata);
                                 deploy(projectname, filedata, VercelToken);
@@ -78,7 +78,7 @@
             }
 
             function findPath(zip) {
-                errordiv.innerHTML += "<br>Finding path of files in zip.";
+                errordiv.innerHTML += "<br>Find path of files in zip.";
                 var haveIndex = 0;
                 var dirpath = "";
                 console.log("find path: Start.");
@@ -107,45 +107,78 @@
             }
 
             function checkDeploys(name, VercelToken) {
-                errordiv.innerHTML += "<br>Check if another deploying.";
+                errordiv.innerHTML += "<br>Get project id.";
                 return new Promise(function(resolve, reject){
-                    var r = 0;
                     var xhr = new XMLHttpRequest();
-                    var url = "https://api.vercel.com/v6/deployments/?app=" + name;
+                    var url = "https://api.vercel.com/v8/projects/" + name;
                     xhr.open("GET", url);
                     xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
                     xhr.onprogress = function(e) {
                         errordiv.innerHTML += ".";
                     }
                     xhr.onload = function(e) {
-                        //console.log(JSON.parse(xhr.responseText));
+                        //console.log(xhr.responseText);
                         if (xhr.status==200) {
-                            var deploys = JSON.parse(xhr.responseText).deployments;
-                            deploys.forEach(element => {
-                                //console.log(element);
-                                if (element.state!=="READY") {
-                                    r++;
-                                    reject(element);
-                                }
-                            });
-                            if (r===0) {
-                                errordiv.innerHTML += " ---- done.";
-                                resolve(r);
-                            } else {
-                                errordiv.innerHTML += "<br>There is a building deployment, please wait.";
-                                reject();
-                                // if continue deploy, please wait the last one done.
-                                //return setTimeout(function() { resolve(checkDeploys(name, VercelToken)) }, 1000);
-                            }
+                            errordiv.innerHTML += " ---- done.";
+                            resolve(JSON.parse(xhr.responseText).id);
+                        } else if (xhr.status===404) {
+                            console.log("new project.");
+                            errordiv.innerHTML += " ---- new project.";
+                            resolve(true);
                         } else {
-                            //console.log(xhr.status);
-                            //console.log(xhr.responseText);
-                            errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
-                            reject();
+                            console.log("something error.");
+                            reject(xhr.responseText);
                         }
                     }
                     xhr.send(null);
+                }).then(projectId => {
+                    if (projectId===true) {
+                        return projectId;
+                    }
+                    errordiv.innerHTML += "<br>Check if another deploying.";
+                    return new Promise(function(resolve, reject){
+                        var r = 0;
+                        var xhr = new XMLHttpRequest();
+                        //var url = "https://api.vercel.com/v6/deployments/?app=" + name;
+                        var url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
+                        xhr.open("GET", url);
+                        xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                        xhr.onprogress = function(e) {
+                            errordiv.innerHTML += ".";
+                        }
+                        xhr.onload = function(e) {
+                            //console.log("loadurl:  " + url);
+                            //console.log(JSON.parse(xhr.responseText));
+                            if (xhr.status==200) {
+                                var deploys = JSON.parse(xhr.responseText).deployments;
+                                deploys.forEach(element => {
+                                    //console.log(element.url);
+                                    if (element.state!=="READY") {
+                                        r++;
+                                        reject(element);
+                                    }
+                                });
+                                if (r===0) {
+                                    errordiv.innerHTML += " ---- done.";
+                                    resolve(r);
+                                } else {
+                                    errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
+                                    reject();
+                                }
+                            } else {
+                                //console.log(xhr.status);
+                                //console.log(xhr.responseText);
+                                errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
+                                reject();
+                            }
+                        }
+                        xhr.send(null);
+                    })
+                }, e => {
+                    console.log(e);
+                    return e;
                 });
+                
             }
 
             function getFileContent(zip, dirpath) {
@@ -198,7 +231,7 @@
             function deploy(projectname, filedata, VercelToken) {
                 errordiv.innerHTML += "<br>Deploy POST";
                 var xhr = new XMLHttpRequest();
-                var url = "https://api.vercel.com/v12/deployments";
+                var url = "https://api.vercel.com/v13/deployments";
                 xhr.open("POST", url);
                 xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
                 xhr.setRequestHeader("Content-Type", "application/json");
