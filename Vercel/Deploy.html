@@ -153,7 +153,7 @@
                                 var deploys = JSON.parse(xhr.responseText).deployments;
                                 deploys.forEach(element => {
                                     //console.log(element.url);
-                                    if (element.state!=="READY") {
+                                    if (element.state!=="READY" && element.state!=="ERROR") {
                                         r++;
                                         reject(element);
                                     }
