@@ -1,313 +1,319 @@
-
 <html lang="en-us">
-    <head>
-        <title>Deploy OneManager to Vercel</title>
-        <meta name=viewport content="width=device-width,initial-scale=1">
-        <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
-    </head>
-    <body>
-        <h1>Deploy to Vercel with zip file</h1>
-        (Click <a href="DeployFolder.html">here</a> to Deploy with folder.)
-        <h4>1. Download zip file from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a></h4>
-        <h4>2. Choose the zip file:</h4>
-            <input id="upload_file" type="file" name="upload_filename">
-        <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
-            <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value="" oninput="this.parentNode.style.color = '';"></label>
-        <h4>4. Input a name for your project: </h4>
-            <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager" oninput="this.parentNode.style.color = '';"></label>
-            <br>
-            You can overlay an existed project.<br>
-            (You will lost your config, please export the config before overlay.)
-        <h4>5. Click the "Deploy" button</h4>
-            <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
-        <div id="showerror"></div>
-        <script type="text/javascript">
-            var errordiv = document.getElementById("showerror");
-            function preup() {
-                errordiv.innerHTML = "";
-                var zipfile = document.getElementById('upload_file').files[0];
-                var VercelToken = document.getElementById("VercelToken").value;
-                var projectname = document.getElementById("projectname").value;
-                if (zipfile===undefined) {
-                    alert("Choose a zip file");
-                    return;
-                }
-                if (VercelToken=="") {
-                    document.getElementById("VercelToken").parentNode.style.color = "red";
-                    //alert("Input VercelToken");
-                    errordiv.innerHTML += "<br>Input VercelToken";
-                    return;
-                }
-                if (projectname=="") {
-                    document.getElementById("projectname").parentNode.style.color = "red";
-                    //alert("Input projectname");
-                    errordiv.innerHTML += "<br>Input projectname";
-                    return;
-                }
 
-                try {
-                    var new_zip = new JSZip();
-                } catch (err) {
-                    console.log(err);
-                    errordiv.innerHTML += "<br>" + err.message;
-                    alert("Please check jszip.js is loaded.");
-                    return;
-                }
-                errordiv.innerHTML = "Checking zip.";
-                new_zip.loadAsync(zipfile).then(function(zip) {
-                    errordiv.innerHTML += " ---- done.";
-                    var dirpath = findPath(zip);
-                    if (dirpath!==false) {
-                        checkDeploys(projectname, VercelToken).then(a => {
-                            console.log("no other building." + a);
-                            getFileContent(zip, dirpath).then(filedata => {
-                                //console.log(filedata);
-                                deploy(projectname, filedata, VercelToken);
-                            });
-                        }, e => {
-                            console.log(e);
-                            console.log(e.url + " is building.");
-                        });
-                    }
-                }, e => {
-                    //console.log(e);
-                    errordiv.innerHTML += "<br>" + e;
-                });
+<head>
+    <title>Deploy OneManager to Vercel</title>
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+</head>
 
+<body>
+    <h1>Deploy to Vercel with zip file</h1>
+    (Click <a href="DeployFolder.html">here</a> to Deploy with folder.)
+    <h4>1. Download zip file from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip"
+            target="_blank">https://github.com/qkqpttgf/OneManager-php</a></h4>
+    <h4>2. Choose the zip file:</h4>
+    <input id="upload_file" type="file" name="upload_filename" accept=".zip">
+    <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
+    <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""
+            oninput="this.parentNode.style.color = '';"></label>
+    <h4>4. Input a name for your project: </h4>
+    <label>Name: <input id="projectname" name="projectname" type="text"
+            placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"
+            oninput="this.parentNode.style.color = '';"></label>
+    <br>
+    You can overlay an existed project.<br>
+    (You will lost your config, please export the config before overlay.)
+    <h4>5. Click the "Deploy" button</h4>
+    <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
+    <div id="showerror"></div>
+    <script type="text/javascript">
+        var errordiv = document.getElementById("showerror");
+        function preup() {
+            errordiv.innerHTML = "";
+            var zipfile = document.getElementById('upload_file').files[0];
+            var VercelToken = document.getElementById("VercelToken").value;
+            var projectname = document.getElementById("projectname").value;
+            if (zipfile === undefined) {
+                alert("Choose a zip file");
+                return;
+            }
+            if (VercelToken == "") {
+                document.getElementById("VercelToken").parentNode.style.color = "red";
+                //alert("Input VercelToken");
+                errordiv.innerHTML += "<br>Input VercelToken";
+                return;
+            }
+            if (projectname == "") {
+                document.getElementById("projectname").parentNode.style.color = "red";
+                //alert("Input projectname");
+                errordiv.innerHTML += "<br>Input projectname";
                 return;
             }
 
-            function findPath(zip) {
-                errordiv.innerHTML += "<br>Find path of files in zip.";
-                var haveIndex = 0;
-                var dirpath = "";
-                console.log("find path: Start.");
-                for (filename in zip.files) {
-                    //console.log(filename);
-                    if (filename.substr(filename.lastIndexOf("/")+1)==="index.php") {
-                        console.log(filename);
-                        haveIndex++;
-                        dirpath = filename.substr(0, filename.length-9);
-                    }
-                }
-                if (haveIndex===0) {
-                    console.log("find path Error.");
-                    errordiv.innerHTML += "<br>Error: not find index.php.";
-                    return false;
-                } else if (haveIndex>1) {
-                    console.log("find path Error.");
-                    errordiv.innerHTML += "<br>Error: index.php more then one.";
-                    return false;
-                } else {
-                    console.log("find path: End.");
-                    errordiv.innerHTML += " ---- done.";
-                    console.log("Path is \"" + dirpath + "\" .");
-                    return dirpath;
-                }
+            try {
+                var new_zip = new JSZip();
+            } catch (err) {
+                console.log(err);
+                errordiv.innerHTML += "<br>" + err.message;
+                alert("Please check jszip.js is loaded.");
+                return;
             }
-
-            function checkDeploys(name, VercelToken) {
-                errordiv.innerHTML += "<br>Get project id.";
-                return new Promise(function(resolve, reject){
-                    var xhr = new XMLHttpRequest();
-                    var url = "https://api.vercel.com/v8/projects/" + name;
-                    xhr.open("GET", url);
-                    xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                    xhr.onprogress = function(e) {
-                        errordiv.innerHTML += ".";
-                    }
-                    xhr.onload = function(e) {
-                        //console.log(xhr.responseText);
-                        if (xhr.status==200) {
-                            errordiv.innerHTML += " ---- done.";
-                            resolve(JSON.parse(xhr.responseText).id);
-                        } else if (xhr.status===404) {
-                            console.log("new project.");
-                            errordiv.innerHTML += " ---- new project.";
-                            resolve(true);
-                        } else {
-                            console.log("something error.");
-                            reject(xhr.responseText);
-                        }
-                    }
-                    xhr.send(null);
-                }).then(projectId => {
-                    if (projectId===true) {
-                        return projectId;
-                    }
-                    errordiv.innerHTML += "<br>Check if another deploying.";
-                    return new Promise(function(resolve, reject){
-                        var r = 0;
-                        var xhr = new XMLHttpRequest();
-                        //var url = "https://api.vercel.com/v6/deployments/?app=" + name;
-                        var url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
-                        xhr.open("GET", url);
-                        xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                        xhr.onprogress = function(e) {
-                            errordiv.innerHTML += ".";
-                        }
-                        xhr.onload = function(e) {
-                            //console.log("loadurl:  " + url);
-                            //console.log(JSON.parse(xhr.responseText));
-                            if (xhr.status==200) {
-                                var deploys = JSON.parse(xhr.responseText).deployments;
-                                deploys.forEach(element => {
-                                    //console.log(element.url);
-                                    if (element.state!=="READY" && element.state!=="ERROR") {
-                                        r++;
-                                        reject(element);
-                                    }
-                                });
-                                if (r===0) {
-                                    errordiv.innerHTML += " ---- done.";
-                                    resolve(r);
-                                } else {
-                                    errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
-                                    reject();
-                                }
-                            } else {
-                                //console.log(xhr.status);
-                                //console.log(xhr.responseText);
-                                errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
-                                reject();
-                            }
-                        }
-                        xhr.send(null);
-                    })
-                }, e => {
-                    console.log(e);
-                    return e;
-                });
-                
-            }
-
-            function getFileContent(zip, dirpath) {
-                // get files content
-                errordiv.innerHTML += "<br>Reading files.";
-                return new Promise(function(resolve, reject){
-                    console.log("read file: Start.");
-                    var filedata = new Array();
-                    let tmp = {
-                        "file": "vercel.json",
-                        "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.6.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
-                    }
-                    filedata.push(tmp);
-                    var loadedNum = 0;
-                    var loadingNum = 0;
-                    for (filename in zip.files) {
-                        //console.log(filename);
-                        if (filename.substr(0, dirpath.length)===dirpath) {
-                            let tmpfilename = "api/" + filename.substr(dirpath.length);
-                            let file = zip.file(filename);
-                            if (file!==null) {
-                                loadingNum++;
-                                file.async("string").then(function(content){
-                                    let tmp = {
-                                        "file": tmpfilename,
-                                        "data": content
-                                    }
-                                    filedata.push(tmp);
-                                    loadedNum++;
-                                });
-                            }
-                        }
-                    }
-
-                    var uploadList = setInterval(function(){
-                        if (loadingNum==0 || loadedNum<loadingNum) {
-                            console.log(loadedNum + " / " + loadingNum);
-                            errordiv.innerHTML += ".";
-                        } else {
-                            clearInterval(uploadList);
+            errordiv.innerHTML = "Checking zip.";
+            new_zip.loadAsync(zipfile).then(function (zip) {
+                errordiv.innerHTML += " ---- done.";
+                var dirpath = findPath(zip);
+                if (dirpath !== false) {
+                    checkDeploys(projectname, VercelToken).then(a => {
+                        console.log("no other building." + a);
+                        getFileContent(zip, dirpath).then(filedata => {
                             //console.log(filedata);
-                            console.log("read file: End.");
-                            errordiv.innerHTML += " ---- done.";
-                            resolve(filedata);
-                        }
-                    }, 1000);
-                });
-            }
+                            deploy(projectname, filedata, VercelToken);
+                        });
+                    }, e => {
+                        console.log(e);
+                        console.log(e.url + " is building.");
+                    });
+                }
+            }, e => {
+                //console.log(e);
+                errordiv.innerHTML += "<br>" + e;
+            });
 
-            function deploy(projectname, filedata, VercelToken) {
-                errordiv.innerHTML += "<br>Deploy POST";
-                var xhr = new XMLHttpRequest();
-                var url = "https://api.vercel.com/v13/deployments";
-                xhr.open("POST", url);
-                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                var data = {
-                    "name": projectname,
-                    //"project": appId,
-                    "target": "production",
-                    "functions": {
-                        "api/index.php": {
-                            "runtime": "vercel-php@0.6.0"
-                        }
-                    },
-                    "routes": [
-                        {
-                            "src": "/(.*)",
-                            "dest": "/api/index.php"
-                        }
-                    ],
-                    "projectSettings": {
-                        "framework": null
-                    },
-                    "files": filedata
-                }
-                xhr.onprogress = function(e) {
-                    errordiv.innerHTML += ".";
-                }
-                xhr.onload = function(e) {
-                    //console.log(xhr.status);
-                    //console.log(xhr.responseText);
-                    var res = JSON.parse(xhr.responseText);
-                    //console.log(res);
-                    if (xhr.status==200) {
-                        errordiv.innerHTML += " ---- done.<br>Getting deploy status";
-                        getStatus(res.id, res.alias[0], VercelToken);
-                    } else {
-                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
-                    }
-                }
-                xhr.send(JSON.stringify(data));
-            }
+            return;
+        }
 
-            var x = "";
-            var min = 0;
-            function getStatus(id, domain, VercelToken) {
-                //console.log(id + " " + domain + " " + VercelToken);
-                x += ".";
-                min++;
+        function findPath(zip) {
+            errordiv.innerHTML += "<br>Find path of files in zip.";
+            var haveIndex = 0;
+            var dirpath = "";
+            console.log("find path: Start.");
+            for (filename in zip.files) {
+                //console.log(filename);
+                if (filename.substr(filename.lastIndexOf("/") + 1) === "index.php") {
+                    console.log(filename);
+                    haveIndex++;
+                    dirpath = filename.substr(0, filename.length - 9);
+                }
+            }
+            if (haveIndex === 0) {
+                console.log("find path Error.");
+                errordiv.innerHTML += "<br>Error: not find index.php.";
+                return false;
+            } else if (haveIndex > 1) {
+                console.log("find path Error.");
+                errordiv.innerHTML += "<br>Error: index.php more then one.";
+                return false;
+            } else {
+                console.log("find path: End.");
+                errordiv.innerHTML += " ---- done.";
+                console.log("Path is \"" + dirpath + "\" .");
+                return dirpath;
+            }
+        }
+
+        function checkDeploys(name, VercelToken) {
+            errordiv.innerHTML += "<br>Get project id.";
+            return new Promise(function (resolve, reject) {
                 var xhr = new XMLHttpRequest();
-                var url = "https://api.vercel.com/v11/deployments/" + id;
+                var url = "https://api.vercel.com/v8/projects/" + name;
                 xhr.open("GET", url);
                 xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                xhr.onprogress = function(e) {
+                xhr.onprogress = function (e) {
                     errordiv.innerHTML += ".";
                 }
-                xhr.onload = function(e) {
-                    //console.log(JSON.parse(xhr.responseText));
-                    if (xhr.status==200) {
-                        var deployStat = JSON.parse(xhr.responseText).readyState;
-                        if (deployStat===undefined || deployStat==="ERROR") {
-                            errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
-                        } else if (deployStat=="READY") {
-                            x = "";
-                            min = 0;
-                            errordiv.innerHTML = "Deploy success!<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
-                        } else {
-                            errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
-                            setTimeout(function() { getStatus(id, domain, VercelToken) }, 1000);
-                        }
+                xhr.onload = function (e) {
+                    //console.log(xhr.responseText);
+                    if (xhr.status == 200) {
+                        errordiv.innerHTML += " ---- done.";
+                        resolve(JSON.parse(xhr.responseText).id);
+                    } else if (xhr.status === 404) {
+                        console.log("new project.");
+                        errordiv.innerHTML += " ---- new project.";
+                        resolve(true);
                     } else {
-                        //console.log(xhr.status);
-                        //console.log(xhr.responseText);
-                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
+                        console.log("something error.");
+                        reject(xhr.responseText);
                     }
                 }
                 xhr.send(null);
+            }).then(projectId => {
+                if (projectId === true) {
+                    return projectId;
+                }
+                errordiv.innerHTML += "<br>Check if another deploying.";
+                return new Promise(function (resolve, reject) {
+                    var r = 0;
+                    var xhr = new XMLHttpRequest();
+                    //var url = "https://api.vercel.com/v6/deployments/?app=" + name;
+                    var url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
+                    xhr.open("GET", url);
+                    xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                    xhr.onprogress = function (e) {
+                        errordiv.innerHTML += ".";
+                    }
+                    xhr.onload = function (e) {
+                        //console.log("loadurl:  " + url);
+                        //console.log(JSON.parse(xhr.responseText));
+                        if (xhr.status == 200) {
+                            var deploys = JSON.parse(xhr.responseText).deployments;
+                            deploys.forEach(element => {
+                                //console.log(element.url);
+                                if (element.state !== "READY" && element.state !== "ERROR") {
+                                    r++;
+                                    reject(element);
+                                }
+                            });
+                            if (r === 0) {
+                                errordiv.innerHTML += " ---- done.";
+                                resolve(r);
+                            } else {
+                                errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
+                                reject();
+                            }
+                        } else {
+                            //console.log(xhr.status);
+                            //console.log(xhr.responseText);
+                            errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
+                            reject();
+                        }
+                    }
+                    xhr.send(null);
+                })
+            }, e => {
+                console.log(e);
+                return e;
+            });
+
+        }
+
+        function getFileContent(zip, dirpath) {
+            // get files content
+            errordiv.innerHTML += "<br>Reading files.";
+            return new Promise(function (resolve, reject) {
+                console.log("read file: Start.");
+                var filedata = new Array();
+                let tmp = {
+                    "file": "vercel.json",
+                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.6.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                }
+                filedata.push(tmp);
+                var loadedNum = 0;
+                var loadingNum = 0;
+                for (filename in zip.files) {
+                    //console.log(filename);
+                    if (filename.substr(0, dirpath.length) === dirpath) {
+                        let tmpfilename = "api/" + filename.substr(dirpath.length);
+                        let file = zip.file(filename);
+                        if (file !== null) {
+                            loadingNum++;
+                            file.async("string").then(function (content) {
+                                let tmp = {
+                                    "file": tmpfilename,
+                                    "data": content
+                                }
+                                filedata.push(tmp);
+                                loadedNum++;
+                            });
+                        }
+                    }
+                }
+
+                var uploadList = setInterval(function () {
+                    if (loadingNum == 0 || loadedNum < loadingNum) {
+                        console.log(loadedNum + " / " + loadingNum);
+                        errordiv.innerHTML += ".";
+                    } else {
+                        clearInterval(uploadList);
+                        //console.log(filedata);
+                        console.log("read file: End.");
+                        errordiv.innerHTML += " ---- done.";
+                        resolve(filedata);
+                    }
+                }, 1000);
+            });
+        }
+
+        function deploy(projectname, filedata, VercelToken) {
+            errordiv.innerHTML += "<br>Deploy POST";
+            var xhr = new XMLHttpRequest();
+            var url = "https://api.vercel.com/v13/deployments";
+            xhr.open("POST", url);
+            xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            var data = {
+                "name": projectname,
+                //"project": appId,
+                "target": "production",
+                "functions": {
+                    "api/index.php": {
+                        "runtime": "vercel-php@0.6.0"
+                    }
+                },
+                "routes": [
+                    {
+                        "src": "/(.*)",
+                        "dest": "/api/index.php"
+                    }
+                ],
+                "projectSettings": {
+                    "framework": null
+                },
+                "files": filedata
             }
-        </script>
-    </body>
+            xhr.onprogress = function (e) {
+                errordiv.innerHTML += ".";
+            }
+            xhr.onload = function (e) {
+                //console.log(xhr.status);
+                //console.log(xhr.responseText);
+                var res = JSON.parse(xhr.responseText);
+                //console.log(res);
+                if (xhr.status == 200) {
+                    errordiv.innerHTML += " ---- done.<br>Getting deploy status";
+                    getStatus(res.id, res.alias[0], VercelToken);
+                } else {
+                    errordiv.innerHTML += "<br>" + xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
+                }
+            }
+            xhr.send(JSON.stringify(data));
+        }
+
+        var x = "";
+        var min = 0;
+        function getStatus(id, domain, VercelToken) {
+            //console.log(id + " " + domain + " " + VercelToken);
+            x += ".";
+            min++;
+            var xhr = new XMLHttpRequest();
+            var url = "https://api.vercel.com/v11/deployments/" + id;
+            xhr.open("GET", url);
+            xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+            xhr.onprogress = function (e) {
+                errordiv.innerHTML += ".";
+            }
+            xhr.onload = function (e) {
+                //console.log(JSON.parse(xhr.responseText));
+                if (xhr.status == 200) {
+                    var deployStat = JSON.parse(xhr.responseText).readyState;
+                    if (deployStat === undefined || deployStat === "ERROR") {
+                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
+                    } else if (deployStat == "READY") {
+                        x = "";
+                        min = 0;
+                        errordiv.innerHTML = "Deploy success!<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
+                    } else {
+                        errordiv.innerHTML = "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
+                        setTimeout(function () { getStatus(id, domain, VercelToken) }, 1000);
+                    }
+                } else {
+                    //console.log(xhr.status);
+                    //console.log(xhr.responseText);
+                    errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
+                }
+            }
+            xhr.send(null);
+        }
+    </script>
+</body>
+
 </html>
