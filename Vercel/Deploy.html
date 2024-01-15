@@ -15,11 +15,11 @@
     <input id="upload_file" type="file" name="upload_filename" accept=".zip">
     <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
     <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""
-            oninput="this.parentNode.style.color = '';"></label>
+            oninput="this.parentNode.style.background = '';"></label>
     <h4>4. Input a name for your project: </h4>
     <label>Name: <input id="projectname" name="projectname" type="text"
             placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"
-            oninput="this.parentNode.style.color = '';"></label>
+            oninput="this.parentNode.style.background = '';"></label>
     <br>
     You can overlay an existed project.<br>
     (You will lost your config, please export the config before overlay.)
@@ -27,6 +27,7 @@
     <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
     <div id="showerror"></div>
     <script type="text/javascript">
+        var vercelPHPversion = "0.6.0";
         var errordiv = document.getElementById("showerror");
         function preup() {
             errordiv.innerHTML = "";
@@ -38,13 +39,13 @@
                 return;
             }
             if (VercelToken == "") {
-                document.getElementById("VercelToken").parentNode.style.color = "red";
+                document.getElementById("VercelToken").parentNode.style.background = "red";
                 //alert("Input VercelToken");
                 errordiv.innerHTML += "<br>Input VercelToken";
                 return;
             }
             if (projectname == "") {
-                document.getElementById("projectname").parentNode.style.color = "red";
+                document.getElementById("projectname").parentNode.style.background = "red";
                 //alert("Input projectname");
                 errordiv.innerHTML += "<br>Input projectname";
                 return;
@@ -64,7 +65,7 @@
                 var dirpath = findPath(zip);
                 if (dirpath !== false) {
                     checkDeploys(projectname, VercelToken).then(a => {
-                        console.log("no other building." + a);
+                        console.log("no other building. " + a);
                         getFileContent(zip, dirpath).then(filedata => {
                             //console.log(filedata);
                             deploy(projectname, filedata, VercelToken);
@@ -194,7 +195,7 @@
                 var filedata = new Array();
                 let tmp = {
                     "file": "vercel.json",
-                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.6.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@' + vercelPHPversion + '" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
                 }
                 filedata.push(tmp);
                 var loadedNum = 0;
@@ -246,7 +247,7 @@
                 "target": "production",
                 "functions": {
                     "api/index.php": {
-                        "runtime": "vercel-php@0.6.0"
+                        "runtime": "vercel-php@" + vercelPHPversion
                     }
                 },
                 "routes": [
