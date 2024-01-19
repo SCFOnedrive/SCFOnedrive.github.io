@@ -21,7 +21,19 @@
         var url = q['state'];
         var code = q['code'];
         if (!!url && !!code) {
-            url = decodeURIComponent(url);
+            try {
+                url = window.atob(url);
+            } catch (e) {
+                try {
+                    url = window.atob(url + "=");
+                } catch (e) {
+                    try {
+                        url = window.atob(url + "==");
+                    } catch (e) {
+                        url = decodeURIComponent(url);
+                    }
+                }
+            }
             if (url.indexOf("AddDisk=") > 1) {
                 var lasturl = url + "&code=" + code;
             } else {
