@@ -52,7 +52,7 @@
                 var filedata = new Array();
                 let tmp = {
                     "file": "vercel.json",
-                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.6.1" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@0.7.0" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
                 }
                 filedata.push(tmp);
                 for (file of files) {
@@ -98,7 +98,7 @@
                     "target": "production",
                     "functions": {
                         "api/index.php": {
-                            "runtime": "vercel-php@0.6.1"
+                            "runtime": "vercel-php@0.7.0"
                         }
                     },
                     "routes": [
