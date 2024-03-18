@@ -49,8 +49,7 @@
             xhr.onload = function (e) {
                 //console.log(xhr.responseText);
                 if (xhr.status == 200) {
-                    vercelPHPversion = JSON.parse(xhr.responseText).version;
-                    document.getElementById("vercelPHPversion").value = vercelPHPversion;
+                    document.getElementById("vercelPHPversion").value = JSON.parse(xhr.responseText).version;
                     //fetchVersionStatDiv.style.color = "Green";
                     fetchVersionStatDiv.innerText = "";
                 } else {
@@ -66,6 +65,7 @@
             var zipfile = document.getElementById('upload_file').files[0];
             var VercelToken = document.getElementById("VercelToken").value;
             var projectname = document.getElementById("projectname").value;
+            vercelPHPversion = document.getElementById("vercelPHPversion").value;
             if (zipfile === undefined) {
                 alert("Choose a zip file");
                 return;
@@ -80,6 +80,10 @@
                 document.getElementById("projectname").parentNode.style.background = "red";
                 //alert("Input projectname");
                 errordiv.innerHTML += "<br>Input projectname";
+                return;
+            }
+            if (vercelPHPversion == "") {
+                errordiv.innerHTML += "Please check and input vercel-php version manually.";
                 return;
             }
 
