@@ -9,26 +9,58 @@
 <body>
     <h1>Deploy to Vercel with zip file</h1>
     (Click <a href="DeployFolder.html">here</a> to Deploy with folder.)
-    <h4>1. Download zip file from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip"
-            target="_blank">https://github.com/qkqpttgf/OneManager-php</a></h4>
+    <h4>1. Download zip file</h4>
+    from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip"
+        target="_blank">https://github.com/qkqpttgf/OneManager-php</a>
     <h4>2. Choose the zip file:</h4>
     <input id="upload_file" type="file" name="upload_filename" accept=".zip">
-    <h4>3. <a href="https://vercel.com/account/tokens" target="_blank">Click here to Creat a token</a>, and input:</h4>
-    <label>Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""
+    <h4>3. Use an existed token or Click <a href="https://vercel.com/account/tokens" target="_blank">here</a> to Creat a
+        token, and input:</h4>
+    <label>Vercel Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""
             oninput="this.parentNode.style.background = '';"></label>
-    <h4>4. Input a name for your project: </h4>
+    <h4>4. Check vercel-php version</h4>
+    In the Readme of <a href="https://github.com/vercel-community/php"
+        target="_blank">https://github.com/vercel-community/php</a><br>
+    "runtime": "vercel-php@<input id="vercelPHPversion" name="vercelPHPversion" type="text" style="width: 50;"
+        value="">"<br>
+    <span id="autoVercelPHPVersion"></span>
+    <h4>5. Input a name for your project: </h4>
     <label>Name: <input id="projectname" name="projectname" type="text"
             placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"
             oninput="this.parentNode.style.background = '';"></label>
     <br>
     You can overlay an existed project.<br>
     (You will lost your config, please export the config before overlay.)
-    <h4>5. Click the "Deploy" button</h4>
+    <h4>6. Click the "Deploy" button</h4>
     <input id="upload_submit" onclick="preup();" value="Deploy" type="button">
     <div id="showerror"></div>
     <script type="text/javascript">
-        var vercelPHPversion = "0.7.0";
+        var vercelPHPversion;
         var errordiv = document.getElementById("showerror");
+        function checkVercelPHPVersion() {
+            var fetchVersionStatDiv = document.getElementById("autoVercelPHPVersion");
+            fetchVersionStatDiv.innerText = "Fetching runtime version ~";
+            var vercelPHPversionURL = "https://raw.githubusercontent.com/vercel-community/php/master/package.json";
+            var xhr = new XMLHttpRequest();
+            //xhr.onreadystatechange = function (e) {
+            //    console.log(xhr.readyState);
+            //}
+            xhr.open("GET", vercelPHPversionURL);
+            xhr.onload = function (e) {
+                //console.log(xhr.responseText);
+                if (xhr.status == 200) {
+                    vercelPHPversion = JSON.parse(xhr.responseText).version;
+                    document.getElementById("vercelPHPversion").value = vercelPHPversion;
+                    //fetchVersionStatDiv.style.color = "Green";
+                    fetchVersionStatDiv.innerText = "";
+                } else {
+                    fetchVersionStatDiv.style.color = "Red";
+                    fetchVersionStatDiv.innerHTML = "Fetch vercel-php runtime version Error! Please check and input it manually.";
+                }
+            }
+            xhr.send(null);
+        }
+        checkVercelPHPVersion();
         function preup() {
             errordiv.innerHTML = "";
             var zipfile = document.getElementById('upload_file').files[0];
@@ -193,9 +225,22 @@
             return new Promise(function (resolve, reject) {
                 console.log("read file: Start.");
                 var filedata = new Array();
-                let tmp = {
+                var verceljson = {
+                    "functions": {
+                        "api/index.php": {
+                            "runtime": "vercel-php@" + vercelPHPversion
+                        }
+                    },
+                    "routes": [
+                        {
+                            "src": "/(.*)",
+                            "dest": "/api/index.php"
+                        }
+                    ]
+                };
+                var tmp = {
                     "file": "vercel.json",
-                    "data": '{ "functions": { "api/index.php": { "runtime": "vercel-php@' + vercelPHPversion + '" } }, "routes": [ { "src": "/(.*)",  "dest": "/api/index.php" } ] }'
+                    "data": JSON.stringify(verceljson, null, "\t")
                 }
                 filedata.push(tmp);
                 var loadedNum = 0;
@@ -203,19 +248,22 @@
                 for (filename in zip.files) {
                     //console.log(filename);
                     if (filename.substr(0, dirpath.length) === dirpath) {
-                        let tmpfilename = "api/" + filename.substr(dirpath.length);
-                        let file = zip.file(filename);
-                        if (file !== null) {
-                            loadingNum++;
-                            file.async("string").then(function (content) {
-                                let tmp = {
-                                    "file": tmpfilename,
-                                    "data": content
-                                }
-                                filedata.push(tmp);
-                                loadedNum++;
-                            });
-                        }
+                        readFiles(filename);
+                    }
+                }
+                function readFiles(filename) {
+                    var tmpfilename = "api/" + filename.substr(dirpath.length);
+                    var file = zip.file(filename);
+                    if (file !== null) {
+                        loadingNum++;
+                        file.async("string").then(function (content) {
+                            var tmp = {
+                                "file": tmpfilename,
+                                "data": content
+                            }
+                            filedata.push(tmp);
+                            loadedNum++;
+                        });
                     }
                 }
 
