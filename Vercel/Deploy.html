@@ -10,24 +10,23 @@
     <h1>Deploy to Vercel with zip file</h1>
     (Click <a href="DeployFolder.html">here</a> to Deploy with folder.)
     <h4>1. Download zip file</h4>
-    from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip"
-        target="_blank">https://github.com/qkqpttgf/OneManager-php</a>
+    from <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a>
     <h4>2. Choose the zip file:</h4>
     <input id="upload_file" type="file" name="upload_filename" accept=".zip">
     <h4>3. Use an existed token or Click <a href="https://vercel.com/account/tokens" target="_blank">here</a> to Creat a
         token, and input:</h4>
-    <label>Vercel Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value=""
-            oninput="this.parentNode.style.background = '';"></label>
+    <label>Vercel Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value="" oninput="clearCheckToken(this);"></label>
+
+    <input id="VercelTokenCheckResult" name="VercelTokenCheckResult" type="hidden" value="false">
+    <input id="VercelTokenCheckButton" name="VercelTokenCheckButton" type="button" value="Check" onclick="checkToken(); return false;" style="display: none;">
+    <span id="VercelTokenCheckResultUser"></span>
+
     <h4>4. Check vercel-php version</h4>
-    In the Readme of <a href="https://github.com/vercel-community/php"
-        target="_blank">https://github.com/vercel-community/php</a><br>
-    "runtime": "vercel-php@<input id="vercelPHPversion" name="vercelPHPversion" type="text" style="width: 50;"
-        value="">"<br>
+    In the Readme of <a href="https://github.com/vercel-community/php" target="_blank">https://github.com/vercel-community/php</a><br>
+    "runtime": "vercel-php@<input id="vercelPHPversion" name="vercelPHPversion" type="text" style="width: 50;" value="">"<br>
     <span id="autoVercelPHPVersion"></span>
     <h4>5. Input a name for your project: </h4>
-    <label>Name: <input id="projectname" name="projectname" type="text"
-            placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager"
-            oninput="this.parentNode.style.background = '';"></label>
+    <label>Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager" oninput="this.parentNode.style.background = '';"></label>
     <br>
     You can overlay an existed project.<br>
     (You will lost your config, please export the config before overlay.)
@@ -60,10 +59,48 @@
             xhr.send(null);
         }
         checkVercelPHPVersion();
+        function clearCheckToken(e) {
+            e.parentNode.style.background = '';
+            document.getElementById("VercelTokenCheckResult").value = false;
+            if (e.value == "") document.getElementById("VercelTokenCheckButton").style.display = "none";
+            else document.getElementById("VercelTokenCheckButton").style.display = "";
+            document.getElementById("VercelTokenCheckResultUser").innerHTML = "";
+        }
+        function checkToken() {
+            document.getElementById("VercelToken").parentNode.style.background = "";
+            var VercelToken = document.getElementById("VercelToken").value;
+            if (VercelToken == "") {
+                document.getElementById("VercelToken").parentNode.style.background = "red";
+                return;
+            }
+            console.log("Checking Token ...");
+            var xhr = new XMLHttpRequest();
+            var url = "https://api.vercel.com/v2/user";
+            xhr.open("GET", url);
+            xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+            xhr.onload = function (e) {
+                //console.log(xhr.responseText);
+                if (xhr.status == 200) {
+                    console.log("Token ok.");
+                    document.getElementById("VercelTokenCheckResult").value = true;
+                    document.getElementById("VercelTokenCheckButton").style.display = "none";
+                    document.getElementById("VercelTokenCheckResultUser").innerHTML = "Success! Hello ".concat(JSON.parse(xhr.responseText).user.name).concat("!");
+                } else {
+                    console.log("Error Token.");
+                    console.log(xhr.responseText);
+                    document.getElementById("VercelTokenCheckResult").value = false;
+                    //document.getElementById("VercelTokenCheckButton").style.display = "";
+                    document.getElementById("VercelTokenCheckResultUser").innerHTML = "Error";
+                    document.getElementById("VercelToken").parentNode.style.background = "red";
+                }
+            }
+            xhr.send(null);
+        }
         function preup() {
             errordiv.innerHTML = "";
             var zipfile = document.getElementById('upload_file').files[0];
             var VercelToken = document.getElementById("VercelToken").value;
+            var VercelTokenCheck = document.getElementById("VercelTokenCheckResult").value;
             var projectname = document.getElementById("projectname").value;
             vercelPHPversion = document.getElementById("vercelPHPversion").value;
             if (zipfile === undefined) {
@@ -74,6 +111,12 @@
                 document.getElementById("VercelToken").parentNode.style.background = "red";
                 //alert("Input VercelToken");
                 errordiv.innerHTML += "<br>Input VercelToken";
+                return;
+            }
+            if (VercelTokenCheck != "true") {
+                document.getElementById("VercelToken").parentNode.style.background = "red";
+                //alert("Input VercelToken");
+                errordiv.innerHTML += "<br>Please Check Vercel Token first";
                 return;
             }
             if (projectname == "") {
@@ -108,7 +151,11 @@
                         });
                     }, e => {
                         console.log(e);
-                        console.log(e.url + " is building.");
+                        if (typeof (e) == "string") errordiv.innerHTML += "<br>" + e;
+                        else {
+                            if ("url" in e) errordiv.innerHTML += "<br>" + e.url + " is building.";
+                            else errordiv.innerHTML += "<br>" + JSON.stringify(e);
+                        }
                     });
                 }
             }, e => {
@@ -167,16 +214,24 @@
                         console.log("new project.");
                         errordiv.innerHTML += " ---- new project.";
                         resolve(true);
+                    } else if (xhr.status === 403) {
+                        document.getElementById("VercelToken").parentNode.style.background = "red";
+                        console.log("Error Token.");
+                        errordiv.innerHTML += " ---- Error Token.";
+                        reject(JSON.parse(xhr.responseText));
                     } else {
                         console.log("something error.");
+                        console.log(xhr.responseText);
                         reject(xhr.responseText);
                     }
                 }
                 xhr.send(null);
             }).then(projectId => {
                 if (projectId === true) {
+                    // new project, direct return
                     return projectId;
                 }
+                // project exist, check status of each deployment
                 errordiv.innerHTML += "<br>Check if another deploying.";
                 return new Promise(function (resolve, reject) {
                     var r = 0;
@@ -217,8 +272,9 @@
                     xhr.send(null);
                 })
             }, e => {
-                console.log(e);
-                return e;
+                return new Promise(function (resolve, reject) {
+                    reject(e);
+                });
             });
 
         }
@@ -349,7 +405,8 @@
                 if (xhr.status == 200) {
                     var deployStat = JSON.parse(xhr.responseText).readyState;
                     if (deployStat === undefined || deployStat === "ERROR") {
-                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
+                        errordiv.innerHTML += "<br>" + xhr.status + "<br><pre>" + JSON.stringify(JSON.parse(xhr.responseText), null, "\t") + "</pre>";
+                        document.body.scrollTop = document.body.clientHeight;
                     } else if (deployStat == "READY") {
                         x = "";
                         min = 0;
