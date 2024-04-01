@@ -82,6 +82,7 @@
             var projectname = document.getElementById("projectname").value;
             vercelPHPVersion = document.getElementById("vercelPHPVersion").value;
             vercelNodeVersion = document.getElementById("vercelNodeVersion").value;
+            vercelNodeVersion = vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x");
             if (VercelToken == "") {
                 document.getElementById("VercelToken").parentNode.style.background = "red";
                 alert("Input Vercel Token");
@@ -184,10 +185,6 @@
                             clearInterval(fetchingStatus);
                             resolve();
                         }
-                        if (min == -1) {
-                            clearInterval(fetchingStatus);
-                            reject();
-                        }
                     }, 500);
                 });
             } else {
@@ -258,7 +255,7 @@
                     console.log("Token ok.");
                     document.getElementById("VercelTokenCheckResult").value = true;
                     document.getElementById("VercelTokenCheckButton").style.display = "none";
-                    document.getElementById("VercelTokenCheckResultUser").innerHTML = "Success! Hello ".concat(JSON.parse(xhr.responseText).user.name).concat("!");
+                    document.getElementById("VercelTokenCheckResultUser").innerHTML = "<span style=\"color: green\">Success!</span> Hello ".concat(JSON.parse(xhr.responseText).user.name).concat("!");
                 } else {
                     console.log("Error Token.");
                     console.log(xhr.responseText);
@@ -391,8 +388,50 @@
             });
         }
 
-        function checkDeploys(name, VercelToken) {
+        async function checkDeploys(name, VercelToken) {
+            let hadProject;
+            try {
+                hadProject = await checkHaveProject(name, VercelToken);
+            } catch (error) {
+                return new Promise(function (resolve, reject) {
+                    reject(error);
+                });
+            }
+            let projectId = hadProject[0];
+            console.log(projectId);
+            if (projectId === true) {
+                // new project, direct return
+                return projectId;
+            }
+            let projectNodeVersion = hadProject[1];
+
+            // project exist, check status of each deployment
+            let status;
+            try {
+                status = await checkDeploysStatus(projectId, VercelToken);
+            } catch (error) {
+                return new Promise(function (resolve, reject) {
+                    reject(error);
+                });
+            }
+
+            // check node version, exist project & vercel-php
+            if (projectNodeVersion == vercelNodeVersion) {
+                return status;
+            } else {
+                // set project node to vercel-php version
+                try {
+                    if (await setProjectNodeVersion(projectId, VercelToken)) return status;
+                } catch (error) {
+                    return new Promise(function (resolve, reject) {
+                        reject(error);
+                    });
+                }
+            }
+        }
+        function checkHaveProject(name, VercelToken) {
             errordiv.innerHTML += "<br>Get project id.";
+            console.log("Get project id.");
             return new Promise(function (resolve, reject) {
                 let xhr = new XMLHttpRequest();
                 let url = "https://api.vercel.com/v8/projects/" + name;
@@ -405,11 +444,11 @@
                     //console.log(xhr.responseText);
                     if (xhr.status == 200) {
                         errordiv.innerHTML += " ---- done.";
-                        resolve(JSON.parse(xhr.responseText).id);
+                        resolve([JSON.parse(xhr.responseText).id, JSON.parse(xhr.responseText).nodeVersion]);
                     } else if (xhr.status === 404) {
                         console.log("new project.");
                         errordiv.innerHTML += " ---- new project.";
-                        resolve(true);
+                        resolve([true]);
                     } else if (xhr.status === 403) {
                         document.getElementById("VercelToken").parentNode.style.background = "red";
                         console.log("Error Token.");
@@ -422,57 +461,78 @@
                     }
                 }
                 xhr.send(null);
-            }).then(projectId => {
-                if (projectId === true) {
-                    // new project, direct return
-                    return projectId;
+
+            });
+        }
+        function checkDeploysStatus(projectId, VercelToken) {
+            errordiv.innerHTML += "<br>Check if another deploying.";
+            return new Promise(function (resolve, reject) {
+                let r = 0;
+                let xhr = new XMLHttpRequest();
+                //let url = "https://api.vercel.com/v6/deployments/?app=" + name;
+                let url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
+                xhr.open("GET", url);
+                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                xhr.onprogress = function (e) {
+                    errordiv.innerHTML += ".";
                 }
-                // project exist, check status of each deployment
-                errordiv.innerHTML += "<br>Check if another deploying.";
-                return new Promise(function (resolve, reject) {
-                    let r = 0;
-                    let xhr = new XMLHttpRequest();
-                    //let url = "https://api.vercel.com/v6/deployments/?app=" + name;
-                    let url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
-                    xhr.open("GET", url);
-                    xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
-                    xhr.onprogress = function (e) {
-                        errordiv.innerHTML += ".";
-                    }
-                    xhr.onload = function (e) {
-                        //console.log("loadurl:  " + url);
-                        //console.log(JSON.parse(xhr.responseText));
-                        if (xhr.status == 200) {
-                            let deploys = JSON.parse(xhr.responseText).deployments;
-                            deploys.forEach(e => {
-                                //console.log(e.url);
-                                if (e.state !== "READY" && e.state !== "ERROR") {
-                                    r++;
-                                    reject(e);
-                                }
-                            });
-                            if (r === 0) {
-                                errordiv.innerHTML += " ---- done.";
-                                resolve(r);
-                            } else {
-                                errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
-                                reject();
+                xhr.onload = function (e) {
+                    //console.log("loadurl:  " + url);
+                    //console.log(JSON.parse(xhr.responseText));
+                    if (xhr.status == 200) {
+                        let deploys = JSON.parse(xhr.responseText).deployments;
+                        deploys.forEach(e => {
+                            //console.log(e.url);
+                            if (e.state !== "READY" && e.state !== "ERROR") {
+                                r++;
+                                reject(e);
                             }
+                        });
+                        if (r === 0) {
+                            errordiv.innerHTML += " ---- done.";
+                            resolve(r);
                         } else {
-                            //console.log(xhr.status);
-                            //console.log(xhr.responseText);
-                            errordiv.innerHTML += "<br>Faild: " + xhr.status + "<br>" + xhr.responseText;
+                            errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
                             reject();
                         }
+                    } else {
+                        //console.log(xhr.status);
+                        //console.log(xhr.responseText);
+                        errordiv.innerHTML += "<br>Fail: " + xhr.status + "<br>" + xhr.responseText;
+                        reject();
                     }
-                    xhr.send(null);
-                })
-            }, e => {
-                return new Promise(function (resolve, reject) {
-                    reject(e);
-                });
+                }
+                xhr.send(null);
             });
-
+        }
+        function setProjectNodeVersion(projectId, VercelToken) {
+            errordiv.innerHTML += "<br>Setting Node version.";
+            return new Promise(function (resolve, reject) {
+                let r = 0;
+                let xhr = new XMLHttpRequest();
+                let url = "https://api.vercel.com/v9/projects/" + projectId;
+                let data = {
+                    "nodeVersion": vercelNodeVersion,
+                };
+                xhr.open("PATCH", url);
+                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                xhr.onload = function (e) {
+                    //console.log(JSON.parse(xhr.responseText));
+                    if (xhr.status == 200 && JSON.parse(xhr.responseText).nodeVersion == vercelNodeVersion) {
+                        errordiv.innerHTML += " ---- done.";
+                        resolve(true);
+                    } else {
+                        //console.log(xhr.status);
+                        //console.log(xhr.responseText);
+                        errordiv.innerHTML += " ---- Fail.<br>" + xhr.status + "<br>" + xhr.responseText;
+                        reject(xhr.responseText);
+                    }
+                }
+                xhr.onerror = function (e) {
+                    reject(e);
+                }
+                xhr.send(JSON.stringify(data));
+            });
         }
 
         function deploy(projectname, filedata, VercelToken) {
@@ -500,8 +560,8 @@
                         }
                     ],
                     "projectSettings": {
-                        "nodeVersion": vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x"),
-                        "framework": null
+                        "framework": null,
+                        "nodeVersion": vercelNodeVersion
                     },
                     "files": filedata
                 }
@@ -543,7 +603,7 @@
             xhr.open("GET", url);
             xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
             xhr.onerror = function (e) {
-                min = -1;
+                min = 0;
                 console.log(e);
                 console.log("Network error.");
                 errordiv.innerHTML += "Network Error.<br>" + e;
@@ -557,8 +617,8 @@
                     let deployStat = JSON.parse(xhr.responseText).readyState;
                     if (deployStat === undefined || deployStat === "ERROR") {
                         console.log("Deploy status Error.");
-                        min = -1;
-                        errordiv.innerHTML += "<br>" + xhr.status + "Error<br><pre>" + JSON.stringify(JSON.parse(xhr.responseText), null, "\t") + "</pre>";
+                        min = 0;
+                        errordiv.innerHTML += "<br>Error, " + xhr.status + "<br><pre>" + JSON.stringify(JSON.parse(xhr.responseText), null, "\t") + "</pre>";
                         document.body.scrollTop = document.body.clientHeight;
                     } else if (deployStat == "READY") {
                         console.log("Deploy status ok.");
