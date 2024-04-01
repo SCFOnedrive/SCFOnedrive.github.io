@@ -82,7 +82,6 @@
             var projectname = document.getElementById("projectname").value;
             vercelPHPVersion = document.getElementById("vercelPHPVersion").value;
             vercelNodeVersion = document.getElementById("vercelNodeVersion").value;
-            vercelNodeVersion = vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x");
             if (VercelToken == "") {
                 document.getElementById("VercelToken").parentNode.style.background = "red";
                 alert("Input Vercel Token");
@@ -110,6 +109,13 @@
             if (vercelPHPVersion == "" || vercelNodeVersion == "") {
                 document.getElementById("vercelPHPVersion").parentNode.style.background = "red";
                 errordiv.innerHTML += "Please check and input vercel-php & Node version manually.";
+                return;
+            }
+            if (vercelNodeVersion.indexOf(".") > 0) vercelNodeVersion = vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x");
+            else vercelNodeVersion += ".x";
+            if (!/[0-9]\.x/.test(vercelNodeVersion)) {
+                document.getElementById("vercelNodeVersion").parentNode.style.background = "red";
+                errordiv.innerHTML += "Please check Node version is a Number.";
                 return;
             }
             var filenamesArr = new Object(); // store filename list
@@ -398,7 +404,7 @@
                 });
             }
             let projectId = hadProject[0];
-            console.log(projectId);
+            //console.log(projectId);
             if (projectId === true) {
                 // new project, direct return
                 return projectId;
@@ -416,6 +422,7 @@
             }
 
             // check node version, exist project & vercel-php
+            //console.log(projectNodeVersion, vercelNodeVersion)
             if (projectNodeVersion == vercelNodeVersion) {
                 return status;
             } else {
@@ -466,6 +473,7 @@
         }
         function checkDeploysStatus(projectId, VercelToken) {
             errordiv.innerHTML += "<br>Check if another deploying.";
+            console.log("Check if another deploying.");
             return new Promise(function (resolve, reject) {
                 let r = 0;
                 let xhr = new XMLHttpRequest();
@@ -507,6 +515,7 @@
         }
         function setProjectNodeVersion(projectId, VercelToken) {
             errordiv.innerHTML += "<br>Setting Node version.";
+            console.log("Set Node version.");
             return new Promise(function (resolve, reject) {
                 let r = 0;
                 let xhr = new XMLHttpRequest();
