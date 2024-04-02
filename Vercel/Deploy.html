@@ -191,6 +191,13 @@
                 // Do Deploy
                 let result = await deploy(projectname, filedata, VercelToken);
                 if (result == null) return;
+                // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
+                try {
+                    let nodeVersion = (await checkHaveProject(projectname, VercelToken));
+                    if (nodeVersion[1] != vercelNodeVersion) await setProjectNodeVersion(nodeVersion[0], VercelToken);
+                } catch (error) {
+                    console.log(error);
+                }
 
                 deployLog = errordiv.innerHTML + "<br>";
                 x = "";
@@ -469,7 +476,7 @@
                     errordiv.innerHTML += ".";
                 }
                 xhr.onload = function (e) {
-                    //console.log(xhr.responseText);
+                    //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status == 200) {
                         errordiv.innerHTML += " ---- done.";
                         resolve([JSON.parse(xhr.responseText).id, JSON.parse(xhr.responseText).nodeVersion]);
@@ -595,6 +602,7 @@
                     },
                     "files": filedata
                 }
+                //console.log(data);
                 xhr.onprogress = function (e) {
                     errordiv.innerHTML += ".";
                 }
