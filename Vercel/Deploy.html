@@ -17,6 +17,11 @@
     <input id="VercelTokenCheckResult" name="VercelTokenCheckResult" type="hidden" value="false">
     <input id="VercelTokenCheckButton" name="VercelTokenCheckButton" type="button" value="Check" onclick="checkToken(); return false;" style="display: none;">
     <span id="VercelTokenCheckResultUser"></span>
+    <span id="localStore" style="display: none;">
+        <br>
+        <button onclick="deleteStoredToken();">Remove Stored Token</button>
+        <button onclick="storeToken();">Store the Token (unsafe)</button>
+    </span>
 
     <h4>3. Choose deploy a zip file or folder</h4>
     <label><input type="radio" name="deployWithFileFolder" value="File" onclick="deployWithFileorFolder(this);" checked>zip file</label>
@@ -60,6 +65,7 @@
         var x = "";
         var min = 0;
 
+        loadToken();
         // auto fetch vercel-php version
         checkVercelPHPVersion(document.getElementById("autoVercelPHPVersion"));
 
@@ -262,6 +268,7 @@
             if (e.value == "") document.getElementById("VercelTokenCheckButton").style.display = "none";
             else document.getElementById("VercelTokenCheckButton").style.display = "";
             document.getElementById("VercelTokenCheckResultUser").innerHTML = "";
+            document.getElementById("localStore").style.display = "none";
         }
         function checkToken() {
             document.getElementById("VercelToken").parentNode.style.background = "";
@@ -283,6 +290,7 @@
                     document.getElementById("VercelTokenCheckResult").value = true;
                     document.getElementById("VercelTokenCheckButton").style.display = "none";
                     document.getElementById("VercelTokenCheckResultUser").innerHTML = "<span style=\"color: green\">Success!</span> Hello ".concat(JSON.parse(xhr.responseText).user.name).concat("!");
+                    document.getElementById("localStore").style.display = "";
                 } else {
                     console.log("Error Token.");
                     console.log(xhr.responseText);
@@ -290,6 +298,7 @@
                     //document.getElementById("VercelTokenCheckButton").style.display = "";
                     document.getElementById("VercelTokenCheckResultUser").innerHTML = "Error";
                     document.getElementById("VercelToken").parentNode.style.background = "red";
+                    document.getElementById("localStore").style.display = "none";
                 }
             }
             xhr.onerror = function (e) {
@@ -300,6 +309,20 @@
                 document.getElementById("VercelToken").parentNode.style.background = "red";
             }
             xhr.send(null);
+        }
+        function loadToken() {
+            let token = localStorage.getItem("VercelToken");
+            if (token) {
+                document.getElementById("VercelToken").value = token;
+                let event = new Event("input");
+                document.getElementById("VercelToken").dispatchEvent(event);
+            }
+        }
+        function storeToken() {
+            localStorage.setItem("VercelToken", document.getElementById("VercelToken").value);
+        }
+        function deleteStoredToken() {
+            localStorage.removeItem("VercelToken");
         }
 
         function findPath(files) {
