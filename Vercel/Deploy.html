@@ -218,7 +218,7 @@
                 min = 0;
                 // after deploy, check the status until ok or error
                 console.log("Status checking");
-                getStatus(result.id, result.alias[0], VercelToken);
+                getStatus(result.id, VercelToken);
                 return new Promise(function (resolve, reject) {
                     let fetchingStatus = setInterval(() => {
                         if (min == 0) {
@@ -715,13 +715,13 @@
             });
         }
 
-        function getStatus(id, domain, VercelToken) {
-            //console.log(id + " " + domain + " " + VercelToken);
+        function getStatus(dlp_id, VercelToken) {
+            //console.log(dlp_id + " " + VercelToken);
             x += ".";
             min++;
             //console.log("Status checking " + min);
             let xhr = new XMLHttpRequest();
-            let url = "https://api.vercel.com/v11/deployments/" + id;
+            let url = "https://api.vercel.com/v11/deployments/" + dlp_id;
             xhr.open("GET", url);
             xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
             xhr.onerror = function (e) {
@@ -736,7 +736,8 @@
             xhr.onload = function (e) {
                 //console.log(JSON.parse(xhr.responseText));
                 if (xhr.status == 200) {
-                    let deployStat = JSON.parse(xhr.responseText).readyState;
+                    let res = JSON.parse(xhr.responseText);
+                    let deployStat = res.readyState;
                     if (deployStat === undefined || deployStat === "ERROR") {
                         console.log("Deploy status Error.");
                         min = 0;
@@ -745,10 +746,14 @@
                         console.log("Deploy status ok.");
                         x = "";
                         min = 0;
-                        errordiv.innerHTML = deployLog + "Deploy success!<br>Click <a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a> to Install.";
+                        errordiv.innerHTML = deployLog + "Deploy success!";
+                        res.alias.forEach(domain => {
+                            errordiv.innerHTML += "<br><a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a>";
+                        });
+                        errordiv.innerHTML += "<br>Click one of url to start Installing.";
                     } else {
                         errordiv.innerHTML = deployLog + "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
-                        setTimeout(function () { getStatus(id, domain, VercelToken) }, 999);
+                        setTimeout(function () { getStatus(dlp_id, VercelToken) }, 999);
                     }
                 } else {
                     //console.log(xhr.status);
