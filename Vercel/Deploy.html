@@ -8,6 +8,7 @@
 
 <body>
     <h1>Deploy to Vercel</h1>
+    <!--you can use this page to deploy other php code to Vercel, but you may do some little change-->
 
     <h4>1. Download the latest code (zip file), not the Releases</h4>
     From <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a>
@@ -202,7 +203,7 @@
                 // Do Deploy
                 let result = await deploy(projectname, filedata, VercelToken);
                 if (result == null) return;
-                /* create new project and change node befor deploy, not need
+                /* create new project and change node before deploy, not need set now
                 // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
                 try {
                     let nodeVersion = (await checkHaveProject(projectname, VercelToken));
@@ -211,6 +212,7 @@
                     console.log(error);
                 }*/
 
+                // the logs before check status
                 deployLog = errordiv.innerHTML + "<br>";
                 x = "";
                 min = 0;
