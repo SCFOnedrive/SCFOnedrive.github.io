@@ -492,20 +492,19 @@
             console.log("ProjectID: ", projectId);
             console.log("NodejsVer: ", projectNodeVersion);
 
-            // check node version, exist project & vercel-php
+            // check node version, bitween project & vercel-php
             //console.log(projectNodeVersion, vercelNodeVersion)
-            if (projectNodeVersion == vercelNodeVersion) {
-                return status;
-            } else {
+            if (projectNodeVersion != vercelNodeVersion) {
                 // set project node to vercel-php version
                 try {
-                    if (await setProjectNodeVersion(projectId, VercelToken)) return status;
+                    await setProjectNodeVersion(projectId, VercelToken);
                 } catch (error) {
                     return new Promise(function (resolve, reject) {
                         reject(error);
                     });
                 }
             }
+            return status;
         }
         function checkHaveProject(name, VercelToken) {
             errordiv.innerHTML += "<br>Get project id.";
@@ -588,7 +587,6 @@
             errordiv.innerHTML += "<br>Setting Node version.";
             console.log("Set Node version.");
             return new Promise(function (resolve, reject) {
-                let r = 0;
                 let xhr = new XMLHttpRequest();
                 let url = "https://api.vercel.com/v9/projects/" + projectId;
                 let data = {
@@ -718,6 +716,7 @@
         function getStatus(dlp_id, VercelToken) {
             //console.log(dlp_id + " " + VercelToken);
             x += ".";
+            if ([...x].filter((x0) => x0 === ".").length % 10 == 0) x += "<br>";
             min++;
             //console.log("Status checking " + min);
             let xhr = new XMLHttpRequest();
@@ -746,13 +745,13 @@
                         console.log("Deploy status ok.");
                         x = "";
                         min = 0;
-                        errordiv.innerHTML = deployLog + "Deploy success!";
+                        errordiv.innerHTML += "<br>Deploy success!";
                         res.alias.forEach(domain => {
                             errordiv.innerHTML += "<br><a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a>";
                         });
                         errordiv.innerHTML += "<br>Click one of url to start Installing.";
                     } else {
-                        errordiv.innerHTML = deployLog + "Deploy " + deployStat + ", " + min + ".<br>Wait " + x;
+                        errordiv.innerHTML = deployLog + "<br>Deploy " + deployStat + ", Waiting " + min + ".<br>" + x;
                         setTimeout(function () { getStatus(dlp_id, VercelToken) }, 999);
                     }
                 } else {
