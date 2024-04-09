@@ -197,13 +197,14 @@
                 // Do Deploy
                 let result = await deploy(projectname, filedata, VercelToken);
                 if (result == null) return;
+                /* create new project and change node befor deploy, not need
                 // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
                 try {
                     let nodeVersion = (await checkHaveProject(projectname, VercelToken));
                     if (nodeVersion[1] != vercelNodeVersion) await setProjectNodeVersion(nodeVersion[0], VercelToken);
                 } catch (error) {
                     console.log(error);
-                }
+                }*/
 
                 deployLog = errordiv.innerHTML + "<br>";
                 x = "";
@@ -455,22 +456,33 @@
                 });
             }
             let projectId = hadProject[0];
+            let projectNodeVersion = hadProject[1];
+            let status;
             //console.log(projectId);
             if (projectId === true) {
-                // new project, direct return
-                return projectId;
+                // new project, create
+                status = true;
+                try {
+                    let project = await createNewProject(name, VercelToken);
+                    projectId = project.id;
+                    projectNodeVersion = project.nodeVersion;
+                } catch (error) {
+                    return new Promise(function (resolve, reject) {
+                        reject(error);
+                    });
+                }
+            } else {
+                // project exist, check status of each deployment
+                try {
+                    status = await checkDeploysStatus(projectId, VercelToken);
+                } catch (error) {
+                    return new Promise(function (resolve, reject) {
+                        reject(error);
+                    });
+                }
             }
-            let projectNodeVersion = hadProject[1];
-
-            // project exist, check status of each deployment
-            let status;
-            try {
-                status = await checkDeploysStatus(projectId, VercelToken);
-            } catch (error) {
-                return new Promise(function (resolve, reject) {
-                    reject(error);
-                });
-            }
+            console.log("ProjectID: ", projectId);
+            console.log("NodejsVer: ", projectNodeVersion);
 
             // check node version, exist project & vercel-php
             //console.log(projectNodeVersion, vercelNodeVersion)
@@ -595,6 +607,47 @@
             });
         }
 
+        function createNewProject(name, VercelToken) {
+            console.log("create new project.");
+            errordiv.innerHTML += "<br>Create new Project.";
+            return new Promise(function (resolve, reject) {
+                let xhr = new XMLHttpRequest();
+                let url = "https://api.vercel.com/v10/projects";
+                xhr.open("POST", url);
+                xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                let data = {
+                    "name": name,
+                    "framework": null
+                }
+                //console.log(data);
+                xhr.onprogress = function (e) {
+                    errordiv.innerHTML += ".";
+                }
+                xhr.onerror = function (e) {
+                    console.log(e);
+                    console.log("Create Project error.");
+                    errordiv.innerHTML += " ---- Network Error.<br>" + e;
+                    reject(null);
+                }
+                xhr.onload = function (e) {
+                    //console.log(xhr.status);
+                    //console.log(xhr.responseText);
+                    let res = JSON.parse(xhr.responseText);
+                    //console.log(res);
+                    if (xhr.status == 200) {
+                        console.log("Create Project success.");
+                        errordiv.innerHTML += " ---- done.";
+                        resolve(res);
+                    } else {
+                        console.log("Create Project failed.");
+                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + res.error.code + "<br>" + res.error.message;
+                        reject(res);
+                    }
+                }
+                xhr.send(JSON.stringify(data));
+            });
+        }
         function deploy(projectname, filedata, VercelToken) {
             console.log("Deploy start.");
             errordiv.innerHTML += "<br>Deploy POST";
