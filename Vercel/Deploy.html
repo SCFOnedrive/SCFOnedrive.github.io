@@ -152,14 +152,14 @@
                     errordiv.innerHTML = "Checking if file is a zip.";
                     zip = await new_zip.loadAsync(zipfile);
                 } catch (error) {
-                    errordiv.innerHTML += " ---- Error.";
+                    printTabEnd(errordiv, "Error");
                     errordiv.innerHTML += "<br>" + error;
                     return null;
                 }
                 if (zip === null) {
                     return;
                 }
-                errordiv.innerHTML += " ---- done.";
+                printTabEnd(errordiv, "done");
                 filenamesArr = zip.files;
                 filenamesArr.zip = zip;
                 filenamesArr.read = readZip;
@@ -203,7 +203,7 @@
                 // Do Deploy
                 let result = await deploy(projectname, filedata, VercelToken);
                 if (result == null) return;
-                /* create new project and change node before deploy, not need set now
+                /* create new project and change node before deploy, not need set here now
                 // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
                 try {
                     let nodeVersion = (await checkHaveProject(projectname, VercelToken));
@@ -273,12 +273,14 @@
         function clearCheckToken(e) {
             e.parentNode.style.background = '';
             document.getElementById("VercelTokenCheckResult").value = false;
+            document.getElementById("VercelTokenCheckButton").removeAttribute("disabled");
             if (e.value == "") document.getElementById("VercelTokenCheckButton").style.display = "none";
             else document.getElementById("VercelTokenCheckButton").style.display = "";
             document.getElementById("VercelTokenCheckResultUser").innerHTML = "";
             document.getElementById("localStore").style.display = "none";
         }
         function checkToken() {
+            document.getElementById("VercelTokenCheckButton").setAttribute("disabled", "");
             document.getElementById("VercelToken").parentNode.style.background = "";
             document.getElementById("VercelTokenCheckResult").value = false;
             let VercelToken = document.getElementById("VercelToken").value;
@@ -322,15 +324,47 @@
             let token = localStorage.getItem("VercelToken");
             if (token) {
                 document.getElementById("VercelToken").value = token;
-                let event = new Event("input");
-                document.getElementById("VercelToken").dispatchEvent(event);
+                document.getElementById("VercelToken").dispatchEvent(new Event("input"));
             }
         }
         function storeToken() {
+            console.log("Saving Token to localstorage");
             localStorage.setItem("VercelToken", document.getElementById("VercelToken").value);
+            alert("done");
         }
         function deleteStoredToken() {
+            console.log("Removing Token from localstorage");
             localStorage.removeItem("VercelToken");
+            alert("done");
+        }
+        function printTabEnd(ele, str) {
+            let max = 360;
+            let line = ele.innerHTML;
+            if (ele.innerHTML.lastIndexOf("<br>") > -1) {
+                line = ele.innerHTML.substr(ele.innerHTML.lastIndexOf("<br>") + 4);
+            }
+            let a1 = " ";
+            let b1 = "-";
+            ele.innerHTML += a1;
+            //console.log(getWidthofString(line), getWidthofString(str), getWidthofString(a1) * 2, getWidthofString(b1) * 4, max);
+            if (getWidthofString(line) + getWidthofString(str) + getWidthofString(a1) * 2 + getWidthofString(b1) * 4 < max) {
+                for (let i = getWidthofString(b1); i < max - getWidthofString(line) - getWidthofString(str) - getWidthofString(b1) * 4; i += getWidthofString(b1)) {
+                    ele.innerHTML += b1;
+                }
+            } else {
+                for (let i = 0; i < 4; i++) {
+                    ele.innerHTML += b1;
+                }
+            }
+            ele.innerHTML += a1 + str + ".";
+        }
+        function getWidthofString(str) {
+            let ele = document.createElement("span");
+            ele.textContent = str;
+            document.body.appendChild(ele);
+            let result = ele.offsetWidth;
+            document.body.removeChild(ele);
+            return result;
         }
 
         function findPath(files) {
@@ -347,12 +381,12 @@
             }
             if (haveIndex === 1) {
                 console.log("find path: End.");
-                errordiv.innerHTML += " ---- done.";
+                printTabEnd(errordiv, "done");
                 console.log("Path is \"" + dirpath + "\" .");
                 return dirpath;
             } else {
                 console.log("find path Error.");
-                errordiv.innerHTML += " ---- Error.";
+                printTabEnd(errordiv, "Error");
                 if (haveIndex === 0) errordiv.innerHTML += "<br>Error: index.php not found.";
                 if (haveIndex > 1) errordiv.innerHTML += "<br>Error: index.php more than one.";
                 return false;
@@ -418,7 +452,7 @@
                         console.log(loadedNum + " / " + loadingNum);
                         clearInterval(readingFiles);
                         console.log("read file: End.");
-                        errordiv.innerHTML += " ---- done.";
+                        printTabEnd(errordiv, "done");
                         resolve(filedata);
                     }
                 }, 1000);
@@ -470,6 +504,7 @@
             if (projectId === true) {
                 // new project, create
                 status = true;
+                //return true;
                 try {
                     let project = await createNewProject(name, VercelToken);
                     projectId = project.id;
@@ -520,16 +555,16 @@
                 xhr.onload = function (e) {
                     //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status == 200) {
-                        errordiv.innerHTML += " ---- done.";
+                        printTabEnd(errordiv, "done");
                         resolve([JSON.parse(xhr.responseText).id, JSON.parse(xhr.responseText).nodeVersion]);
                     } else if (xhr.status === 404) {
                         console.log("new project.");
-                        errordiv.innerHTML += " ---- new project.";
+                        printTabEnd(errordiv, "new project");
                         resolve([true]);
                     } else if (xhr.status === 403) {
                         document.getElementById("VercelToken").parentNode.style.background = "red";
                         console.log("Error Token.");
-                        errordiv.innerHTML += " ---- Error Token.";
+                        printTabEnd(errordiv, "Error Token");
                         reject(JSON.parse(xhr.responseText));
                     } else {
                         console.log("something error.");
@@ -567,7 +602,7 @@
                             }
                         });
                         if (r === 0) {
-                            errordiv.innerHTML += " ---- done.";
+                            printTabEnd(errordiv, "done");
                             resolve(r);
                         } else {
                             errordiv.innerHTML += "<br>There is a building deployment, please deploy later.";
@@ -597,12 +632,13 @@
                 xhr.onload = function (e) {
                     //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status == 200 && JSON.parse(xhr.responseText).nodeVersion == vercelNodeVersion) {
-                        errordiv.innerHTML += " ---- done.";
+                        printTabEnd(errordiv, "done");
                         resolve(true);
                     } else {
                         //console.log(xhr.status);
                         //console.log(xhr.responseText);
-                        errordiv.innerHTML += " ---- Fail.<br>" + xhr.status + "<br>" + xhr.responseText;
+                        printTabEnd(errordiv, "Fail");
+                        errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
                         reject(xhr.responseText);
                     }
                 }
@@ -633,7 +669,8 @@
                 xhr.onerror = function (e) {
                     console.log(e);
                     console.log("Create Project error.");
-                    errordiv.innerHTML += " ---- Network Error.<br>" + e;
+                    printTabEnd(errordiv, "Network Error");
+                    errordiv.innerHTML += "<br>" + e;
                     reject(null);
                 }
                 xhr.onload = function (e) {
@@ -643,7 +680,7 @@
                     //console.log(res);
                     if (xhr.status == 200) {
                         console.log("Create Project success.");
-                        errordiv.innerHTML += " ---- done.";
+                        printTabEnd(errordiv, "done");
                         resolve(res);
                     } else {
                         console.log("Create Project failed.");
@@ -691,7 +728,8 @@
                 xhr.onerror = function (e) {
                     console.log(e);
                     console.log("Deploy error.");
-                    errordiv.innerHTML += " ---- Network Error.<br>" + e;
+                    printTabEnd(errordiv, "Network Error");
+                    errordiv.innerHTML += "<br>" + e;
                     reject(null);
                 }
                 xhr.onload = function (e) {
@@ -701,7 +739,7 @@
                     //console.log(res);
                     if (xhr.status == 200) {
                         console.log("Deploy POST success.");
-                        errordiv.innerHTML += " ---- done.";
+                        printTabEnd(errordiv, "done");
                         resolve(res);
                     } else {
                         console.log("Deploy failed.");
@@ -720,7 +758,7 @@
             min++;
             //console.log("Status checking " + min);
             let xhr = new XMLHttpRequest();
-            let url = "https://api.vercel.com/v11/deployments/" + dlp_id;
+            let url = "https://api.vercel.com/v13/deployments/" + dlp_id;
             xhr.open("GET", url);
             xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
             xhr.onerror = function (e) {
@@ -743,15 +781,15 @@
                         errordiv.innerHTML += "<br>Error, " + xhr.status + "<br><pre>" + JSON.stringify(JSON.parse(xhr.responseText), null, "\t") + "</pre>";
                     } else if (deployStat == "READY") {
                         console.log("Deploy status ok.");
-                        x = "";
-                        min = 0;
                         errordiv.innerHTML += "<br>Deploy success!";
                         res.alias.forEach(domain => {
                             errordiv.innerHTML += "<br><a href=\"http://" + domain + "\" target=\"_blank\">" + domain + "</a>";
                         });
                         errordiv.innerHTML += "<br>Click one of url to start Installing.";
+                        x = "";
+                        min = 0;
                     } else {
-                        errordiv.innerHTML = deployLog + "<br>Deploy " + deployStat + ", Waiting " + min + ".<br>" + x;
+                        errordiv.innerHTML = deployLog + "<br>" + deployStat + ", Waiting " + min + "<br>" + x;
                         setTimeout(function () { getStatus(dlp_id, VercelToken) }, 999);
                     }
                 } else {
