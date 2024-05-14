@@ -3,7 +3,7 @@
 <head>
     <title>Deploy OneManager to Vercel</title>
     <meta name=viewport content="width=device-width,initial-scale=1">
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+    <script src="jszip.js"></script>
 </head>
 
 <body>
@@ -347,8 +347,8 @@
             let b1 = "-";
             ele.innerHTML += a1;
             //console.log(getWidthofString(line), getWidthofString(str), getWidthofString(a1) * 2, getWidthofString(b1) * 4, max);
-            if (getWidthofString(line) + getWidthofString(str) + getWidthofString(a1) * 2 + getWidthofString(b1) * 4 < max) {
-                for (let i = getWidthofString(b1); i < max - getWidthofString(line) - getWidthofString(str) - getWidthofString(b1) * 4; i += getWidthofString(b1)) {
+            if (getWidthofString(line + a1 + b1 + b1 + b1 + b1 + a1 + str) < max) {
+                for (let i = getWidthofString(b1); i < max - getWidthofString(line + a1 + b1 + b1 + b1 + b1 + a1 + str); i += getWidthofString(b1)) {
                     ele.innerHTML += b1;
                 }
             } else {
