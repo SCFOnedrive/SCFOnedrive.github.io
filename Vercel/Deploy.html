@@ -244,7 +244,7 @@
         }
         function checkVercelPHPVersion(ele_err) {
             ele_err.innerText = "Fetching runtime version ~";
-            let vercelPHPversionURL = "https://raw.githubusercontent.com/vercel-community/php/master/package.json";
+            let vercelPHPversionURL = "https://raw.githubusercontent.com/vercel-community/php/master/package.json?" + (new Date().getTime());
             let xhr = new XMLHttpRequest();
             xhr.open("GET", vercelPHPversionURL);
             xhr.onload = function (e) {
