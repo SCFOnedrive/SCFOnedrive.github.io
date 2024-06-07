@@ -66,6 +66,7 @@
         var x = "";
         var min = 0;
 
+        // load token from localstorage, if it exist
         loadToken();
         // auto fetch vercel-php version
         checkVercelPHPVersion(document.getElementById("autoVercelPHPVersion"));
@@ -89,8 +90,8 @@
 
         async function main() {
             errordiv.innerHTML = "";
-            let zipfile = document.getElementById('upload_File').files[0];
-            let files = document.getElementById('upload_Folder').files;
+            let uploadingZipFile = document.getElementById('upload_File').files[0];
+            let uploadingFolderFiles = document.getElementById('upload_Folder').files;
             let VercelToken = document.getElementById("VercelToken").value;
             let VercelTokenCheck = document.getElementById("VercelTokenCheckResult").value;
             let projectname = document.getElementById("projectname").value;
@@ -110,11 +111,11 @@
                 alert("Choose deploy with a zip file or folder");
                 return;
             }
-            if (deployWith == "File" && zipfile === undefined) {
+            if (deployWith == "File" && uploadingZipFile === undefined) {
                 alert("Choose a zip file");
                 return;
             }
-            if (deployWith == "Folder" && files.length < 1) {
+            if (deployWith == "Folder" && uploadingFolderFiles.length < 1) {
                 alert("Choose a folder");
                 return;
             }
@@ -136,7 +137,10 @@
                 errordiv.innerHTML += "Please check Node version is a Number.";
                 return;
             }
-            var filenamesArr = new Object(); // store filename list
+
+            let fileList = new Object();
+            // member 'files' store name list of files 
+            // member 'read' is async function can read content of files
             if (deployWith == "File") {
                 let new_zip = null;
                 try {
@@ -149,93 +153,99 @@
                 }
                 let zip = null;
                 try {
-                    errordiv.innerHTML = "Checking if file is a zip.";
-                    zip = await new_zip.loadAsync(zipfile);
+                    errordiv.innerHTML += "<br>Checking if file is a zip.";
+                    zip = await new_zip.loadAsync(uploadingZipFile);
                 } catch (error) {
                     printTabEnd(errordiv, "Error");
                     errordiv.innerHTML += "<br>" + error;
                     return null;
                 }
-                if (zip === null) {
-                    return;
-                }
+                if (zip === null) return;
                 printTabEnd(errordiv, "done");
-                filenamesArr = zip.files;
-                filenamesArr.zip = zip;
-                filenamesArr.read = readZip;
+                fileList = zip;
+                //fileList.files = zip.files;
+                fileList.read = readZip;
             }
             if (deployWith == "Folder") {
-                for (file of files) {
-                    filenamesArr[file.webkitRelativePath] = file;
+                let fileMenus = new Object();
+                for (file of uploadingFolderFiles) {
+                    fileMenus[file.webkitRelativePath] = file;
                 }
-                filenamesArr.read = readFiles;
+                fileList.files = fileMenus;
+                fileList.read = readFiles;
             }
 
-            // find the path of THE index.php
-            var dirpath = findPath(filenamesArr);
-            if (dirpath !== false) {
-                // read files content from zip or folder, and format as vercel like
-                let filedata = null;
-                try {
-                    filedata = await getFileContent(filenamesArr, dirpath);
-                    console.log(filedata);
-                } catch (error) {
-                    console.log(error);
-                    return;
-                }
-                if (filedata == null) return;
+            // find the path of THE "index.php"
+            // zip file download from github, is in a folder
+            // files in folder, some case choose the parent folder
+            let dirpath = findPath(fileList.files, "index.php");
+            if (dirpath === false) return;
 
-                // check if there is another deployment in queue
-                let hadQueue = await checkDeploys(projectname, VercelToken).then(a => {
-                    console.log(a + ", no other building. ");
-                    return false;
-                }, e => {
-                    console.log(e);
-                    if (typeof (e) == "string") errordiv.innerHTML += "<br>" + e;
-                    else {
-                        if ("url" in e) errordiv.innerHTML += "<br>" + e.url + " is building.";
-                        else errordiv.innerHTML += "<br>" + JSON.stringify(e);
-                    }
-                    return true;
-                });
-                if (hadQueue) return;
-
-                // Do Deploy
-                let result = await deploy(projectname, filedata, VercelToken);
-                if (result == null) return;
-                /* create new project and change node before deploy, not need set here now
-                // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
-                try {
-                    let nodeVersion = (await checkHaveProject(projectname, VercelToken));
-                    if (nodeVersion[1] != vercelNodeVersion) await setProjectNodeVersion(nodeVersion[0], VercelToken);
-                } catch (error) {
-                    console.log(error);
-                }*/
-
-                // the logs before check status
-                deployLog = errordiv.innerHTML + "<br>";
-                x = "";
-                min = 0;
-                // after deploy, check the status until ok or error
-                console.log("Status checking");
-                getStatus(result.id, VercelToken);
-                return new Promise(function (resolve, reject) {
-                    let fetchingStatus = setInterval(() => {
-                        if (min == 0) {
-                            // status ok or error
-                            clearInterval(fetchingStatus);
-                            resolve();
-                        }
-                    }, 500);
-                });
-            } else {
+            // read files content from zip or folder, and format as vercel like
+            let filedata = null;
+            try {
+                filedata = await getFileContent(fileList, dirpath);
+                console.log(filedata);
+            } catch (error) {
+                console.log(error);
                 return;
             }
+            if (filedata == null) return;
 
+            // check if there is another deployment in queue
+            let hadQueue = await checkDeploys(projectname, VercelToken).then(a => {
+                console.log(a + ", no other building. ");
+                return false;
+            }, e => {
+                console.log(e);
+                if (typeof (e) == "string") errordiv.innerHTML += "<br>" + e;
+                else {
+                    if ("url" in e) errordiv.innerHTML += "<br>" + e.url + " is building.";
+                    else errordiv.innerHTML += "<br>" + JSON.stringify(e);
+                }
+                return true;
+            });
+            if (hadQueue) return;
+
+            // Do Deploy
+            let result = null;
+            try {
+                result = await deploy(projectname, filedata, VercelToken);
+            } catch (error) {
+                console.log(error);
+                return;
+            }
+            if (result == null) return;
+
+            /* create new project and change node before deploy, not need set here now
+            // appoint Node version success 20240401, but fail 20240402, so set it after deploy.
+            try {
+                let nodeVersion = await checkHaveProject(projectname, VercelToken);
+                if (nodeVersion[1] != vercelNodeVersion) await setProjectNodeVersion(nodeVersion[0], VercelToken);
+            } catch (error) {
+                console.log(error);
+            }*/
+
+            // store the logs before check status
+            deployLog = errordiv.innerHTML + "<br>";
+            x = "";
+            min = 0;
+            // after deploy, check the status until ok or error
+            console.log("Status checking");
+            getStatus(result.id, VercelToken);
+            return new Promise(function (resolve, reject) {
+                let fetchingStatus = setInterval(() => {
+                    if (min == 0) {
+                        // status ok or error
+                        clearInterval(fetchingStatus);
+                        resolve();
+                    }
+                }, 500);
+            });
         }
 
         function deployWithFileorFolder(e) {
-            //console.log(e.value);
+            // change dispaly | hidden
             let display_ele = document.getElementById("deployWith".concat(e.value));
             let hidden_ele = document.getElementById("deployWith".concat(e.value == "File" ? "Folder" : "File"));
             display_ele.style.display = "";
@@ -248,7 +258,6 @@
             let xhr = new XMLHttpRequest();
             xhr.open("GET", vercelPHPversionURL);
             xhr.onload = function (e) {
-                //console.log(xhr.responseText);
                 if (xhr.status == 200) {
                     document.getElementById("vercelPHPVersion").value = JSON.parse(xhr.responseText).version;
                     document.getElementById("vercelNodeVersion").value = JSON.parse(xhr.responseText).devDependencies['@types/node'];
@@ -260,9 +269,6 @@
                     ele_err.innerHTML = "Fetch vercel-php runtime version Error! Please check and input it manually.";
                 }
             }
-            //xhr.onreadystatechange = function (e) {
-            //    console.log(xhr.readyState);
-            //}
             xhr.onerror = function (e) {
                 ele_err.style.color = "Red";
                 ele_err.innerHTML = "Fetch vercel-php runtime version Error! Please check and input it manually.";
@@ -294,7 +300,6 @@
             xhr.open("GET", url);
             xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
             xhr.onload = function (e) {
-                //console.log(xhr.responseText);
                 if (xhr.status == 200) {
                     console.log("Token ok.");
                     document.getElementById("VercelTokenCheckResult").value = true;
@@ -346,9 +351,8 @@
             let a1 = " ";
             let b1 = "-";
             ele.innerHTML += a1;
-            //console.log(getWidthofString(line), getWidthofString(str), getWidthofString(a1) * 2, getWidthofString(b1) * 4, max);
             if (getWidthofString(line + a1 + b1 + b1 + b1 + b1 + a1 + str) < max) {
-                for (let i = getWidthofString(b1); i < max - getWidthofString(line + a1 + b1 + b1 + b1 + b1 + a1 + str); i += getWidthofString(b1)) {
+                for (let i = 0; getWidthofString(ele.innerHTML.substr(ele.innerHTML.lastIndexOf("<br>") + 4) + a1 + str) < max; i++) {
                     ele.innerHTML += b1;
                 }
             } else {
@@ -356,7 +360,7 @@
                     ele.innerHTML += b1;
                 }
             }
-            ele.innerHTML += a1 + str + ".";
+            ele.innerHTML += a1 + str;
         }
         function getWidthofString(str) {
             let ele = document.createElement("span");
@@ -367,14 +371,13 @@
             return result;
         }
 
-        function findPath(files) {
-            errordiv.innerHTML += "<br>Find path of index.php.";
+        function findPath(files, targetFile) {
+            errordiv.innerHTML += "<br>Find path of " + targetFile + ".";
             let haveIndex = 0;
             let dirpath = "";
             console.log("find path: Start.");
             for (filename in files) {
-                //console.log(filename);
-                if (filename.substr(filename.lastIndexOf("/") + 1) === "index.php") {
+                if (filename.substr(filename.lastIndexOf("/") + 1) === targetFile) {
                     haveIndex++;
                     dirpath = filename.substr(0, filename.length - 9);
                 }
@@ -387,14 +390,13 @@
             } else {
                 console.log("find path Error.");
                 printTabEnd(errordiv, "Error");
-                if (haveIndex === 0) errordiv.innerHTML += "<br>Error: index.php not found.";
-                if (haveIndex > 1) errordiv.innerHTML += "<br>Error: index.php more than one.";
+                if (haveIndex === 0) errordiv.innerHTML += "<br>Error: " + targetFile + " not found.";
+                if (haveIndex > 1) errordiv.innerHTML += "<br>Error: " + targetFile + " more than one.";
                 return false;
             }
         }
 
-        function getFileContent(files, dirpath) {
-            // get files content
+        function getFileContent(fileLists, dirpath) {
             errordiv.innerHTML += "<br>Reading files.";
             return new Promise(function (resolve, reject) {
                 console.log("read file: Start.");
@@ -419,7 +421,7 @@
                 filedata.push(tmp);
                 let loadedNum = 0;
                 let loadingNum = 0;
-                for (let filename in files) {
+                for (let filename in fileLists.files) {
                     //console.log(filename);
                     if (filename.substr(0, dirpath.length) === dirpath) {
                         readFile(filename);
@@ -428,7 +430,7 @@
                 function readFile(filename) {
                     let tmpfilename = "api/" + filename.substr(dirpath.length);
                     loadingNum++;
-                    files.read(filename).then(content => {
+                    fileLists.read(filename).then(content => {
                         if (content != null) {
                             let tmp = {
                                 "file": tmpfilename,
@@ -439,10 +441,10 @@
                         loadedNum++;
                     }, e => {
                         clearInterval(readingFiles);
-                        errordiv.innerHTML = "Read file \"" + filename + "\" Error!";
+                        printTabEnd(errordiv, "Error!");
+                        errordiv.innerHTML += "<br>" + e;
                         reject(e);
                     });
-
                 }
                 let readingFiles = setInterval(() => {
                     if (loadingNum == 0 || loadedNum < loadingNum) {
@@ -460,7 +462,7 @@
         }
         async function readZip(filename) {
             //console.log(filename);
-            let file = this.zip.file(filename);
+            let file = this.file(filename);
             if (file !== null) {
                 return new Promise(function (resolve, reject) {
                     file.async("string").then(data => {
@@ -475,7 +477,7 @@
         }
         async function readFiles(filename) {
             //console.log(filename);
-            let file = this[filename];
+            let file = this.files[filename];
             return new Promise(function (resolve, reject) {
                 let reader = new FileReader();
                 reader.onload = function (e) {
@@ -502,9 +504,8 @@
             let status;
             //console.log(projectId);
             if (projectId === true) {
-                // new project, create
+                // not found, create a new project
                 status = true;
-                //return true;
                 try {
                     let project = await createNewProject(name, VercelToken);
                     projectId = project.id;
@@ -558,8 +559,8 @@
                         printTabEnd(errordiv, "done");
                         resolve([JSON.parse(xhr.responseText).id, JSON.parse(xhr.responseText).nodeVersion]);
                     } else if (xhr.status === 404) {
-                        console.log("new project.");
-                        printTabEnd(errordiv, "new project");
+                        console.log("New project.");
+                        printTabEnd(errordiv, "New project");
                         resolve([true]);
                     } else if (xhr.status === 403) {
                         document.getElementById("VercelToken").parentNode.style.background = "red";
@@ -582,7 +583,6 @@
             return new Promise(function (resolve, reject) {
                 let r = 0;
                 let xhr = new XMLHttpRequest();
-                //let url = "https://api.vercel.com/v6/deployments/?app=" + name;
                 let url = "https://api.vercel.com/v6/deployments/?projectId=" + projectId;
                 xhr.open("GET", url);
                 xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
@@ -590,12 +590,9 @@
                     errordiv.innerHTML += ".";
                 }
                 xhr.onload = function (e) {
-                    //console.log("loadurl:  " + url);
-                    //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status == 200) {
                         let deploys = JSON.parse(xhr.responseText).deployments;
                         deploys.forEach(e => {
-                            //console.log(e.url);
                             if (e.state !== "READY" && e.state !== "ERROR") {
                                 r++;
                                 reject(e);
@@ -609,8 +606,6 @@
                             reject();
                         }
                     } else {
-                        //console.log(xhr.status);
-                        //console.log(xhr.responseText);
                         errordiv.innerHTML += "<br>Fail: " + xhr.status + "<br>" + xhr.responseText;
                         reject();
                     }
@@ -630,13 +625,10 @@
                 xhr.open("PATCH", url);
                 xhr.setRequestHeader("Authorization", "Bearer " + VercelToken);
                 xhr.onload = function (e) {
-                    //console.log(JSON.parse(xhr.responseText));
                     if (xhr.status == 200 && JSON.parse(xhr.responseText).nodeVersion == vercelNodeVersion) {
                         printTabEnd(errordiv, "done");
                         resolve(true);
                     } else {
-                        //console.log(xhr.status);
-                        //console.log(xhr.responseText);
                         printTabEnd(errordiv, "Fail");
                         errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
                         reject(xhr.responseText);
@@ -674,10 +666,7 @@
                     reject(null);
                 }
                 xhr.onload = function (e) {
-                    //console.log(xhr.status);
-                    //console.log(xhr.responseText);
                     let res = JSON.parse(xhr.responseText);
-                    //console.log(res);
                     if (xhr.status == 200) {
                         console.log("Create Project success.");
                         printTabEnd(errordiv, "done");
@@ -721,7 +710,6 @@
                     },
                     "files": filedata
                 }
-                //console.log(data);
                 xhr.onprogress = function (e) {
                     errordiv.innerHTML += ".";
                 }
@@ -733,10 +721,7 @@
                     reject(null);
                 }
                 xhr.onload = function (e) {
-                    //console.log(xhr.status);
-                    //console.log(xhr.responseText);
                     let res = JSON.parse(xhr.responseText);
-                    //console.log(res);
                     if (xhr.status == 200) {
                         console.log("Deploy POST success.");
                         printTabEnd(errordiv, "done");
@@ -752,11 +737,9 @@
         }
 
         function getStatus(dlp_id, VercelToken) {
-            //console.log(dlp_id + " " + VercelToken);
             x += ".";
             if ([...x].filter((x0) => x0 === ".").length % 10 == 0) x += "<br>";
             min++;
-            //console.log("Status checking " + min);
             let xhr = new XMLHttpRequest();
             let url = "https://api.vercel.com/v13/deployments/" + dlp_id;
             xhr.open("GET", url);
@@ -767,11 +750,7 @@
                 console.log("Network error.");
                 errordiv.innerHTML += "Network Error.<br>" + e;
             }
-            //xhr.onprogress = function (e) {
-            //    errordiv.innerHTML += ".";
-            //}
             xhr.onload = function (e) {
-                //console.log(JSON.parse(xhr.responseText));
                 if (xhr.status == 200) {
                     let res = JSON.parse(xhr.responseText);
                     let deployStat = res.readyState;
@@ -793,15 +772,12 @@
                         setTimeout(function () { getStatus(dlp_id, VercelToken) }, 999);
                     }
                 } else {
-                    //console.log(xhr.status);
-                    //console.log(xhr.responseText);
                     errordiv.innerHTML += "<br>" + xhr.status + "<br>" + xhr.responseText;
                     min = 0;
                 }
             }
             xhr.send(null);
         }
-
     </script>
 </body>
 
