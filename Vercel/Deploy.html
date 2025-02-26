@@ -2,19 +2,20 @@
 
 <head>
     <title>Deploy OneManager to Vercel</title>
-    <meta name=viewport content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="auth" content="qkqpttgf, ysun">
     <script src="jszip.js"></script>
 </head>
 
 <body>
-    <h1>Deploy to Vercel</h1>
-    <!--you can use this page to deploy other php code to Vercel, but you may do some little change-->
+    <h1 title="You can use this page to deploy some php codes to Vercel, which contain one and only one file named index.php in files.
+If not one, you should to do some little changes.">Deploy to Vercel</h1>
 
     <h4>1. Download the latest code (zip file), not the Releases</h4>
     From <a href="https://github.com/qkqpttgf/OneManager-php/archive/refs/heads/master.zip" target="_blank">https://github.com/qkqpttgf/OneManager-php</a>
 
-    <h4>2. Use an existed Vercel token or Click <a href="https://vercel.com/account/tokens" target="_blank">here</a> to Creat a new token</h4>
-    <label>And input Token: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value="" oninput="clearCheckToken(this);"></label>
+    <h4>2. Click <a href="https://vercel.com/account/tokens" target="_blank">here</a> to Creat a New Vercel token (or Use an Existing token)</h4>
+    <label>Input the token, then check it: <input id="VercelToken" name="VercelToken" type="password" placeholder="" value="" oninput="clearCheckToken(this);"></label>
     <input id="VercelTokenCheckResult" name="VercelTokenCheckResult" type="hidden" value="false">
     <input id="VercelTokenCheckButton" name="VercelTokenCheckButton" type="button" value="Check" onclick="checkToken(); return false;" style="display: none;">
     <span id="VercelTokenCheckResultUser"></span>
@@ -37,8 +38,8 @@
         <input id="upload_Folder" type="file" name="upload_filename" multiple="multiple" webkitdirectory>
     </span>
 
-    <h4>5. Fetch vercel-php version</h4>
-    In the Readme of <a href="https://github.com/vercel-community/php" target="_blank">https://github.com/vercel-community/php</a><br>
+    <h4>5. Fetch vercel-php runtime version</h4>
+    In the ReadMe of <a href="https://github.com/vercel-community/php" target="_blank">https://github.com/vercel-community/php</a><br>
     <span>
         "runtime": "vercel-php@<input id="vercelPHPVersion" name="vercelPHPVersion" type="text" style="width: 50;" value="" placeholder="0.7.0" oninput="this.parentNode.style.background = '';">"
         (Node version: <input id="vercelNodeVersion" name="vercelNodeVersion" type="text" style="width: 80;" value="" placeholder="20.x or 18" oninput="this.parentNode.style.background = '';">)
@@ -48,7 +49,7 @@
     <h4>6. Input a name for your project: </h4>
     <label>Project Name: <input id="projectname" name="projectname" type="text" placeholder="lower case alphanumeric characters and hyphens" size="" value="onemanager" oninput="this.parentNode.style.background = '';"></label>
     <br>
-    You can overlay an existed project.<br>
+    You can overlay an existing project.<br>
     (You will lost your config, please export the config before overlay.)
 
     <h4>7. Click the "Deploy" button</h4>
@@ -83,7 +84,10 @@
             } catch (error) {
                 console.log(error);
             }
-            clearInterval(scrolling);
+            setTimeout(() => {
+                // if clear immediately, the window will not scroll to the last line.
+                clearInterval(scrolling);
+            }, 500);
             deployButton.removeAttribute('disabled');
             console.log("main End");
         }
@@ -108,7 +112,7 @@
                 return;
             }
             if (deployWith != "File" && deployWith != "Folder") {
-                alert("Choose deploy with a zip file or folder");
+                alert("Choose deploy a zip file or folder");
                 return;
             }
             if (deployWith == "File" && uploadingZipFile === undefined) {
@@ -349,7 +353,7 @@
                 line = ele.innerHTML.substr(ele.innerHTML.lastIndexOf("<br>") + 4);
             }
             let a1 = " ";
-            let b1 = "-";
+            let b1 = ".";
             ele.innerHTML += a1;
             if (getWidthofString(line + a1 + b1 + b1 + b1 + b1 + a1 + str) < max) {
                 for (let i = 0; getWidthofString(ele.innerHTML.substr(ele.innerHTML.lastIndexOf("<br>") + 4) + a1 + str) < max; i++) {
