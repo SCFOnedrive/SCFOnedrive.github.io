@@ -42,7 +42,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
     In the ReadMe of <a href="https://github.com/vercel-community/php" target="_blank">https://github.com/vercel-community/php</a><br>
     <span>
         "runtime": "vercel-php@<input id="vercelPHPVersion" name="vercelPHPVersion" type="text" style="width: 50;" value="" placeholder="0.7.0" oninput="this.parentNode.style.background = '';">"
-        (Node version: <input id="vercelNodeVersion" name="vercelNodeVersion" type="text" style="width: 80;" value="" placeholder="20.x or 18" oninput="this.parentNode.style.background = '';">)
+        <!--(Node version: <input id="vercelNodeVersion" name="vercelNodeVersion" type="text" style="width: 80;" value="" placeholder="20.x or 18" oninput="this.parentNode.style.background = '';">)-->
     </span><br>
     <span id="autoVercelPHPVersion"></span>
 
@@ -60,7 +60,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
     <script type="text/javascript">
         var deployWith = "File";
         var vercelPHPVersion;
-        var vercelNodeVersion;
+        //var vercelNodeVersion;
         var deployButton = document.getElementById("deployButton");
         var errordiv = document.getElementById("showerror");
         var deployLog = "";
@@ -100,7 +100,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
             let VercelTokenCheck = document.getElementById("VercelTokenCheckResult").value;
             let projectname = document.getElementById("projectname").value;
             vercelPHPVersion = document.getElementById("vercelPHPVersion").value;
-            vercelNodeVersion = document.getElementById("vercelNodeVersion").value;
+            //vercelNodeVersion = document.getElementById("vercelNodeVersion").value;
             if (VercelToken == "") {
                 document.getElementById("VercelToken").parentNode.style.background = "red";
                 alert("Input Vercel Token");
@@ -129,18 +129,18 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
                 errordiv.innerHTML += "<br>Input Project Name";
                 return;
             }
-            if (vercelPHPVersion == "" || vercelNodeVersion == "") {
-                document.getElementById("vercelPHPVersion").parentNode.style.background = "red";
-                errordiv.innerHTML += "Please check and input vercel-php & Node version manually.";
-                return;
-            }
-            if (vercelNodeVersion.indexOf(".") > 0) vercelNodeVersion = vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x");
-            else vercelNodeVersion += ".x";
-            if (!/[0-9]\.x/.test(vercelNodeVersion)) {
-                document.getElementById("vercelNodeVersion").parentNode.style.background = "red";
-                errordiv.innerHTML += "Please check Node version is a Number.";
-                return;
-            }
+            //if (vercelPHPVersion == "" || vercelNodeVersion == "") {
+            //    document.getElementById("vercelPHPVersion").parentNode.style.background = "red";
+            //    errordiv.innerHTML += "Please check and input vercel-php & Node version manually.";
+            //    return;
+            //}
+            //if (vercelNodeVersion.indexOf(".") > 0) vercelNodeVersion = vercelNodeVersion.substr(0, vercelNodeVersion.indexOf(".")).concat(".x");
+            //else vercelNodeVersion += ".x";
+            //if (!/[0-9]\.x/.test(vercelNodeVersion)) {
+            //    document.getElementById("vercelNodeVersion").parentNode.style.background = "red";
+            //    errordiv.innerHTML += "Please check Node version is a Number.";
+            //    return;
+            //}
 
             let fileList = new Object();
             // member 'files' store name list of files 
@@ -264,7 +264,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
             xhr.onload = function (e) {
                 if (xhr.status == 200) {
                     document.getElementById("vercelPHPVersion").value = JSON.parse(xhr.responseText).version;
-                    document.getElementById("vercelNodeVersion").value = JSON.parse(xhr.responseText).devDependencies['@types/node'];
+                    //document.getElementById("vercelNodeVersion").value = JSON.parse(xhr.responseText).devDependencies['@types/node'];
                     ele_err.innerText = "";
                     //ele_err.style.color = "Green";
                 } else {
@@ -513,7 +513,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
                 try {
                     let project = await createNewProject(name, VercelToken);
                     projectId = project.id;
-                    projectNodeVersion = project.nodeVersion;
+                    //projectNodeVersion = project.nodeVersion;
                 } catch (error) {
                     return new Promise(function (resolve, reject) {
                         reject(error);
@@ -530,20 +530,20 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
                 }
             }
             console.log("ProjectID: ", projectId);
-            console.log("NodejsVer: ", projectNodeVersion);
+            //console.log("NodejsVer: ", projectNodeVersion);
 
             // check node version, bitween project & vercel-php
             //console.log(projectNodeVersion, vercelNodeVersion)
-            if (projectNodeVersion != vercelNodeVersion) {
+            //if (projectNodeVersion != vercelNodeVersion) {
                 // set project node to vercel-php version
-                try {
-                    await setProjectNodeVersion(projectId, VercelToken);
-                } catch (error) {
-                    return new Promise(function (resolve, reject) {
-                        reject(error);
-                    });
-                }
-            }
+            //    try {
+            //        await setProjectNodeVersion(projectId, VercelToken);
+            //    } catch (error) {
+            //        return new Promise(function (resolve, reject) {
+            //            reject(error);
+            //        });
+            //    }
+            //}
             return status;
         }
         function checkHaveProject(name, VercelToken) {
@@ -686,7 +686,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
         }
         function deploy(projectname, filedata, VercelToken) {
             console.log("Deploy start.");
-            errordiv.innerHTML += "<br>Deploy POST";
+            errordiv.innerHTML += "<br>POST Content";
             return new Promise(function (resolve, reject) {
                 let xhr = new XMLHttpRequest();
                 let url = "https://api.vercel.com/v13/deployments";
@@ -709,7 +709,8 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
                         }
                     ],
                     "projectSettings": {
-                        "nodeVersion": vercelNodeVersion,
+                //        "nodeVersion": vercelNodeVersion,
+                        "nodeVersion": "22.x",
                         "framework": null
                     },
                     "files": filedata
@@ -727,7 +728,7 @@ If not one, you should to do some little changes.">Deploy to Vercel</h1>
                 xhr.onload = function (e) {
                     let res = JSON.parse(xhr.responseText);
                     if (xhr.status == 200) {
-                        console.log("Deploy POST success.");
+                        console.log("POST content success.");
                         printTabEnd(errordiv, "done");
                         resolve(res);
                     } else {
